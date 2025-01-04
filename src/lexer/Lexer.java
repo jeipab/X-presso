@@ -1,4 +1,4 @@
-package lexer;
+package src.lexer;
 
 /**
  * The core component of the lexical analyzer, responsible for scanning the source code 

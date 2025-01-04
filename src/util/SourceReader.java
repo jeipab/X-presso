@@ -1,4 +1,4 @@
-package util;
+package src.util;
 
 /**
  * Handles reading the source code, character by character, while keeping track 

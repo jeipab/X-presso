@@ -1,4 +1,4 @@
-package lexer;
+package src.lexer;
 
 /**
  * Defines the possible categories of tokens that the lexical analyzer can recognize. 
