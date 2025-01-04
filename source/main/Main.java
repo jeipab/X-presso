@@ -1,4 +1,4 @@
-package src.main;
+package source.main;
 
 /**
  * The entry point for testing the lexical analyzer. 

@@ -1,4 +1,4 @@
-package src.util;
+package source.util;
 
 /**
  * Logs and manages lexical errors encountered during the analysis phase. 

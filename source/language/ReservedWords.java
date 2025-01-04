@@ -1,4 +1,4 @@
-package src.language;
+package source.language;
 
 /**
  * Manages the keywords and reserved words of the language. 

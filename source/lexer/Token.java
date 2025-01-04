@@ -1,4 +1,4 @@
-package src.lexer;
+package source.lexer;
 
 /**
  * Represents the smallest unit of a source code, such as a keyword, identifier, 
