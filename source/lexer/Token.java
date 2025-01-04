@@ -7,5 +7,4 @@ package source.lexer;
  */
 
 public class Token {
-    
 }
