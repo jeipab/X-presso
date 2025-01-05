@@ -7,4 +7,32 @@ package source.lexer;
  */
 
 public class Token {
+    private final TokenType type;
+    private final String lexeme;
+    private final int line;
+    private final int value;
+
+    public Token(TokenType type, String lexeme, int line, int value) {
+        this.type = type;
+        this.lexeme = lexeme;
+        this.line = line;
+        this.value = value;
+    }
+
+    public TokenType getType() {
+        return type;
+    }
+
+     public String getLexeme() {
+          return lexeme;
+     }
+
+     public int getLine() {
+          return line;
+     }
+
+     public int getValue() {
+          return value;
+     }
+
 }
