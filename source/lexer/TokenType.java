@@ -17,25 +17,38 @@ public enum TokenType {
      RESERVED_WORD,
 
 
-     // OPERATORS
+     // ARITHMETIC OPERATORS
      PLUS_OPERATOR,
      MINUS_OPERATOR,
      MULTIPLY_OPERATOR,
      DIVIDE_OPERATOR,
      MODULUS_OPERATOR,
-     ASSIGNMENT_OPERATOR,
+
+
+     ASSIGNMENT_OPERATOR, // "=", "+=", "-=", "*=", "/=", "%=", "?="
+
+     // RELATIONAL OPERATORS
      EQUAL_OPERATOR,
      GREATER_THAN,
      LESS_THAN,
      GREATER_THAN_OR_EQUAL,
      LESS_THAN_OR_EQUAL,
      NOT_EQUAL,
+
+
+     // LOGICAL OPERATORS
      AND_OPERATOR,
      OR_OPERATOR,
      NOT_OPERATOR,
+
+     // UNARY OPERATOR
      INCREMENT,
      DECREMENT,
      SELF_EXPONENTIATION,
+
+     // BITWISE OPERATORS
+     RIGHT_SIGNED_SHIFT,
+     LEFT_SIGNED_SHIFT,
      RIGHT_UNSIGNED_SHIFT,
      LEFT_UNSIGNED_SHIFT,
 
@@ -47,6 +60,7 @@ public enum TokenType {
      FRACTION,
      BOOLEAN,
      CHARACTER,
+     MIXED,
      NULL, // Not sure for " "
 
      // DELIMITERS
@@ -57,6 +71,17 @@ public enum TokenType {
      LEFT_BRACKET,
      RIGHT_BRACKET,
 
+     // PUNCTUATION_DELIMTER?? or etong mga nasa baba?
+     SEMICOLON,
+     COLON,
+     COMMA,
+     TERNARY_OPERATOR, // "?"
+     ANNOTATION, // "@"
+
+     STRING_DELIMETER, // " \ "
+     
+     OBJECT_DELIMETER,  // "< >", "{ }"
+
      // COMMENTS
      SINGLE_COMMENT,
      MULTILINE_START_COMMENT, 
@@ -65,10 +90,12 @@ public enum TokenType {
      // WHITE SPACE
      TAB, 
      NEWLINE,
+
+     //FOR NEW PRINCIPLES (dunno san to lalagay)
+     METHOD_CALL,
+     ACCESS_PROPERTY,
+
      
-     // SEMICOLON?? SPECIAL CHARACTERS???
-     SEMICOLON,
-     COLON,
-     COMMA,
+
      
 }
