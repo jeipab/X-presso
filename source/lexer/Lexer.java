@@ -1,7 +1,7 @@
 package source.lexer;
 
 import source.util.SourceReader;
-import source.language.ReservedWords;
+import source.language.SpecialWords;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,7 +13,7 @@ import java.util.List;
 public class Lexer {
     private final SourceReader reader;
     private final List<Token> tokens;
-    private final ReservedWords reservedWords;
+    private final SpecialWords specialWords;
 
     /**
      * Constructs a Lexer with a given SourceReader.
@@ -23,7 +23,7 @@ public class Lexer {
     public Lexer(SourceReader reader) {
         this.reader = reader;
         this.tokens = new ArrayList<>();
-        this.reservedWords = new ReservedWords();
+        this.specialWords = new SpecialWords();
     }
 
     /**
@@ -87,9 +87,11 @@ public class Lexer {
         }
 
         String identifierStr = identifier.toString();
-        if (reservedWords.isKeyword(identifierStr)) {
+        if (specialWords.isKeyword(identifierStr)) {
             tokens.add(new Token(TokenType.KEYWORD, identifierStr, reader.getLine(), reader.getColumn()));
-        } else if (reservedWords.isNoiseWord(identifierStr)) {
+        } else if (specialWords.isReservedWord(identifierStr)) {
+            tokens.add(new Token(TokenType.RESERVED_WORD, identifierStr, reader.getLine(), reader.getColumn()));
+        }else if (specialWords.isNoiseWord(identifierStr)) {
             // Skip noise words
         } else {
             tokens.add(new Token(TokenType.IDENTIFIER, identifierStr, reader.getLine(), reader.getColumn()));
