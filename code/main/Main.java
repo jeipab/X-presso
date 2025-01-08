@@ -1,4 +1,4 @@
-package code.main;
+package main;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -6,10 +6,10 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 
-import code.lexer.Lexer;
-import code.lexer.Token;
-import code.lexer.TokenType;
-import code.util.SourceReader;
+import lexer.Lexer;
+import lexer.Token;
+import lexer.TokenType;
+import util.SourceReader;
 
 /**
  * Entry point for testing the lexical analyzer.

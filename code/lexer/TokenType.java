@@ -1,4 +1,4 @@
-package code.lexer;
+package lexer;
 
 /**
  * Enum representing the various types of tokens recognized by the Lexer.

@@ -1,10 +1,10 @@
-package code.lexer;
+package lexer;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import code.language.SpecialWords;
-import code.util.SourceReader;
+import language.SpecialWords;
+import util.SourceReader;
 
 /**
  * Lexer class that performs lexical analysis on a given source code.
