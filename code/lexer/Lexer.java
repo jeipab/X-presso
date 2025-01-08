@@ -45,6 +45,8 @@ public class Lexer {
                     handleNumberLiteral(currentChar);
                 } else if (isColon(currentChar)) {
                     handleColon(currentChar);
+                } else if (currentChar=='.') {
+                    handlePeriods(currentChar);
                 } else if (isOperatorSymbol(currentChar)) {
                     handleOperator(currentChar);
                 } else if (isDelimiterOrBracket(currentChar)) {
@@ -105,9 +107,15 @@ public class Lexer {
         number.append(firstChar);
 
         boolean isFloat = false;
+        boolean PeriodOperator = false;
         while (Character.isDigit(reader.peek()) || reader.peek() == '.') {
             if (reader.peek() == '.') {
-                if (isFloat) break; // Only one decimal point allowed
+                if (isFloat) {
+                    PeriodOperator = true;
+                    number.deleteCharAt(number.length()-1);
+                    isFloat = false;    
+                    break;
+                } // Only one decimal point allowed
                 isFloat = true;
             }
             number.append(reader.readNext());
@@ -126,6 +134,10 @@ public class Lexer {
 
         TokenType type = isFloat ? TokenType.FLOAT_LITERAL : TokenType.INTEGER_LITERAL;
         tokens.add(new Token(type, number.toString(), reader.getLine(), reader.getColumn()));
+
+        if (PeriodOperator) {
+            handlePeriods('.');
+        }
     }
 
     private void handleColon(char firstChar) throws SourceReader.SourceReaderException{
@@ -140,19 +152,33 @@ public class Lexer {
         }
     }
 
+    private void handlePeriods(char firstChar) throws SourceReader.SourceReaderException {
+        StringBuilder symbol = new StringBuilder();
+        symbol.append(firstChar);
+
+        int count = 1;
+        while (reader.peek()=='.') {
+            count++;
+            if (count>3) break; //more than 3 periods not allowed
+            symbol.append(reader.readNext());
+        }
+
+        if (count==1) {
+            tokens.add(new Token(TokenType.METHOD_OPERATOR, symbol.toString(), reader.getLine(), reader.getColumn()));
+        } else if (count==3) {
+            tokens.add(new Token(TokenType.LOOP_OPERATOR, symbol.toString(), reader.getLine(), reader.getColumn()));
+        } 
+    }
+
     private void handleOperator(char firstChar) throws SourceReader.SourceReaderException {
         StringBuilder operator = new StringBuilder();
         operator.append(firstChar);
 
-        if (firstChar=='.') {
-            tokens.add(new Token(TokenType.METHOD_OPERATOR, operator.toString(), reader.getLine(), reader.getColumn()));
-        } else {
-            if (isOperatorSymbol(reader.peek())) {
-                operator.append(reader.readNext()); // Handle multi-character operators
-            }
-
-            tokens.add(new Token(TokenType.ARITHMETIC_OPERATOR, operator.toString(), reader.getLine(), reader.getColumn()));
+        if (isOperatorSymbol(reader.peek())) {
+            operator.append(reader.readNext()); // Handle multi-character operators
         }
+
+        tokens.add(new Token(TokenType.ARITHMETIC_OPERATOR, operator.toString(), reader.getLine(), reader.getColumn()));
     }
 
     private void handleDateOrFraction(StringBuilder value) throws SourceReader.SourceReaderException{
@@ -213,7 +239,7 @@ public class Lexer {
     }
 
     private boolean isOperatorSymbol(char c) {
-        return "+-*/=<>!&|.".indexOf(c) != -1;
+        return "+-*/=<>!&|".indexOf(c) != -1;
     }
 
     private boolean isDelimiterOrBracket(char c) {
