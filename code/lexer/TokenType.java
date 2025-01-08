@@ -19,6 +19,8 @@ public enum TokenType {
      UNARY_OPERATOR,
      TERNARY_OPERATOR,
      BITWISE_OPERATOR,
+     METHOD_OPERATOR,
+     LOOP_OPERATOR,
 
      // Literals
      INTEGER_LITERAL,
