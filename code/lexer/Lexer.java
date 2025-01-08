@@ -5,7 +5,7 @@ import java.util.List;
 
 import language.SpecialWords;
 import util.SourceReader;
-import util.SourceReader.SourceReaderException;
+
 
 /**
  * Lexer class that performs lexical analysis on a given source code.
@@ -86,7 +86,7 @@ public class Lexer {
         StringBuilder identifier = new StringBuilder();
         identifier.append(firstChar);
 
-        while (Character.isLetterOrDigit(reader.peek()) || reader.peek() == '_') {
+        while (Character.isLetterOrDigit(reader.peek()) || reader.peek() == '_' || reader.peek() == '-') {
             identifier.append(reader.readNext());
         }
 
@@ -95,7 +95,7 @@ public class Lexer {
             tokens.add(new Token(TokenType.KEYWORD, identifierStr, reader.getLine(), reader.getColumn()));
         } else if (specialWords.isReservedWord(identifierStr)) {
             tokens.add(new Token(TokenType.RESERVED_WORD, identifierStr, reader.getLine(), reader.getColumn()));
-        } else {
+        } else if (identifierStr.indexOf('-') == -1) {
             tokens.add(new Token(TokenType.IDENTIFIER, identifierStr, reader.getLine(), reader.getColumn()));
         }
     }
