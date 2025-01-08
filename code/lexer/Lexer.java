@@ -113,6 +113,17 @@ public class Lexer {
             number.append(reader.readNext());
         }
 
+        if (reader.peek()=='|') {
+            number.append(reader.readNext());
+            if (Character.isDigit(reader.peek())) {
+                handleDateOrFraction(number);
+                return;
+            } else if (isOperatorSymbol(reader.peek())) {
+                handleOperator('|');
+                return;
+            }
+        }
+
         TokenType type = isFloat ? TokenType.FLOAT_LITERAL : TokenType.INTEGER_LITERAL;
         tokens.add(new Token(type, number.toString(), reader.getLine(), reader.getColumn()));
     }
@@ -138,11 +149,26 @@ public class Lexer {
         } else {
             if (isOperatorSymbol(reader.peek())) {
                 operator.append(reader.readNext()); // Handle multi-character operators
-                tokens.add(new Token(TokenType.ARITHMETIC_OPERATOR, operator.toString(), reader.getLine(), reader.getColumn()));
             }
 
             tokens.add(new Token(TokenType.ARITHMETIC_OPERATOR, operator.toString(), reader.getLine(), reader.getColumn()));
         }
+    }
+
+    private void handleDateOrFraction(StringBuilder value) throws SourceReader.SourceReaderException{
+        int count = 1;
+        while (Character.isDigit(reader.peek()) || reader.peek() == '|') {
+            if (reader.peek()=='|') {
+                count++;
+                if (count>2) break; //More than 2 '|' is not permitted 
+            }
+            if (count<=2) {
+                value.append(reader.readNext());
+            }
+        }
+
+        TokenType type = (count==2) ? TokenType.DATE_LITERAL : TokenType.FRACTION_LITERAL;
+        tokens.add(new Token(type, value.toString(), reader.getLine(), reader.getColumn()));
     }
 
     private void handleDelimiterOrBracket(char firstChar) {
