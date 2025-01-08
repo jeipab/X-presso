@@ -170,7 +170,7 @@ public enum Token {
           RIGHT_ANGLE_BRACKET,
           LEFT_CURLY_BRACE,
           RIGHT_CURLY_BRACE,
-      
+
 
      // COMMENT,
      

@@ -1,0 +1,9 @@
+{
+    "java.excludeFolders": ["**/bin"],
+    "files.exclude": {
+    "**/bin": false
+    },
+    "search.exclude": {
+    "**/bin": false
+    }
+}

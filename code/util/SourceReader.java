@@ -1,4 +1,4 @@
-package source.util;
+package code.util;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -16,8 +16,8 @@ public class SourceReader {
 
     private BufferedReader reader;
     private int line = 1;
-    private int charPosition = 0;
-    private int lastChar = -1;
+    private int column = 0; // Tracks the column position of the current character
+    private char lastChar = EOF;
 
     /**
      * Constructs a new SourceReader instance.
@@ -27,29 +27,37 @@ public class SourceReader {
      * @throws SourceReaderException if an error occurs while reading the file
      */
     public SourceReader(String filePath, Charset charset) throws SourceReaderException {
-        try (FileInputStream fileInputStream = new FileInputStream(filePath)) {
-            reader = new BufferedReader(new InputStreamReader(fileInputStream, charset));
+        try {
+            reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath), charset));
         } catch (IOException e) {
-            throw new SourceReaderException("Error opening file", e);
+            throw new SourceReaderException("Error opening file: " + filePath, e);
         }
     }
 
     /**
-     * Reads the next character from the file.
+     * Reads the next character from the file and advances the position.
      * 
      * @return the next character, or EOF if the end of the file is reached
      * @throws SourceReaderException if an error occurs while reading the file
      */
     public char readNext() throws SourceReaderException {
         try {
-            lastChar = reader.read();
+            int read = reader.read();
+            if (read == -1) {
+                lastChar = EOF;
+                return EOF;
+            }
+
+            lastChar = (char) read;
+
             if (lastChar == '\n') {
                 line++;
-                charPosition = 0;
+                column = 0; // Reset column for the new line
             } else {
-                charPosition++;
+                column++;
             }
-            return lastChar == -1 ? EOF : (char) lastChar;
+
+            return lastChar;
         } catch (IOException e) {
             throw new SourceReaderException("Error reading from file", e);
         }
@@ -63,10 +71,10 @@ public class SourceReader {
      */
     public char peek() throws SourceReaderException {
         try {
-            reader.mark(1);
-            lastChar = reader.read();
-            reader.reset();
-            return lastChar == -1 ? EOF : (char) lastChar;
+            reader.mark(1); // Mark the current position
+            int read = reader.read();
+            reader.reset(); // Reset to the marked position
+            return read == -1 ? EOF : (char) read;
         } catch (IOException e) {
             throw new SourceReaderException("Error peeking at file", e);
         }
@@ -82,12 +90,21 @@ public class SourceReader {
     }
 
     /**
-     * Returns the current character position within the line.
+     * Returns the current character column within the line.
      * 
-     * @return the current character position
+     * @return the current character column
      */
     public int getColumn() {
-        return charPosition;
+        return column;
+    }
+
+    /**
+     * Returns the last character read, useful for debugging and context-sensitive logic.
+     * 
+     * @return the last character read
+     */
+    public char getLastChar() {
+        return lastChar;
     }
 
     /**
