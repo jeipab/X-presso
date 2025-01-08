@@ -1,4 +1,4 @@
-package code.lexer;
+package lexer;
 
 /**
  * Represents a lexical token produced by the Lexer.

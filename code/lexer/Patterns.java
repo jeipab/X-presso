@@ -1,4 +1,4 @@
-package code.lexer;
+package lexer;
 /**
  * Centralizes the regular expressions and matching rules for the tokens. 
  * Defines patterns for identifiers, keywords, operators, delimiters, 
