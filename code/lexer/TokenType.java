@@ -29,6 +29,9 @@ public enum TokenType {
      BOOLEAN_LITERAL,
      CHARACTER_LITERAL,
      NULL_LITERAL,
+     FRACTION_LITERAL,
+     DATE_LITERAL,
+     COMPLEX_LITERAL,
 
      // Delimiters
      DELIMITER,
