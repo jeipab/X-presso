@@ -5,6 +5,7 @@ import java.util.List;
 
 import language.SpecialWords;
 import util.SourceReader;
+import util.SourceReader.SourceReaderException;
 
 /**
  * Lexer class that performs lexical analysis on a given source code.
@@ -42,6 +43,8 @@ public class Lexer {
                     handleIdentifierOrKeyword(currentChar);
                 } else if (Character.isDigit(currentChar)) {
                     handleNumberLiteral(currentChar);
+                } else if (isColon(currentChar)) {
+                    handleColon(currentChar);
                 } else if (isOperatorSymbol(currentChar)) {
                     handleOperator(currentChar);
                 } else if (isDelimiterOrBracket(currentChar)) {
@@ -114,19 +117,40 @@ public class Lexer {
         tokens.add(new Token(type, number.toString(), reader.getLine(), reader.getColumn()));
     }
 
+    private void handleColon(char firstChar) throws SourceReader.SourceReaderException{
+        StringBuilder symbol = new StringBuilder();
+        symbol.append(firstChar);
+
+        if (isColon(reader.peek())) {
+            symbol.append(reader.readNext());
+            tokens.add(new Token(TokenType.METHOD_OPERATOR, symbol.toString(), reader.getLine(), reader.getColumn()));
+        } else {
+            tokens.add(new Token(TokenType.PUNCTUATION_DELIMITER, symbol.toString(), reader.getLine(), reader.getColumn()));
+        }
+    }
+
     private void handleOperator(char firstChar) throws SourceReader.SourceReaderException {
         StringBuilder operator = new StringBuilder();
         operator.append(firstChar);
 
-        if (isOperatorSymbol(reader.peek())) {
-            operator.append(reader.readNext()); // Handle multi-character operators
-        }
+        if (firstChar=='.') {
+            tokens.add(new Token(TokenType.METHOD_OPERATOR, operator.toString(), reader.getLine(), reader.getColumn()));
+        } else {
+            if (isOperatorSymbol(reader.peek())) {
+                operator.append(reader.readNext()); // Handle multi-character operators
+                tokens.add(new Token(TokenType.ARITHMETIC_OPERATOR, operator.toString(), reader.getLine(), reader.getColumn()));
+            }
 
-        tokens.add(new Token(TokenType.ARITHMETIC_OPERATOR, operator.toString(), reader.getLine(), reader.getColumn()));
+            tokens.add(new Token(TokenType.ARITHMETIC_OPERATOR, operator.toString(), reader.getLine(), reader.getColumn()));
+        }
     }
 
     private void handleDelimiterOrBracket(char firstChar) {
-        tokens.add(new Token(TokenType.DELIMITER, String.valueOf(firstChar), reader.getLine(), reader.getColumn()));
+        if ("[](){}".indexOf(firstChar) != -1) {
+            tokens.add(new Token(TokenType.DELIMITER, String.valueOf(firstChar), reader.getLine(), reader.getColumn()));
+        } else if (".;?@".indexOf(firstChar) != -1) {
+            tokens.add(new Token(TokenType.PUNCTUATION_DELIMITER, String.valueOf(firstChar), reader.getLine(), reader.getColumn()));
+        }
     }
 
     private void handleStringLiteral(char quote) throws SourceReader.SourceReaderException {
@@ -163,11 +187,15 @@ public class Lexer {
     }
 
     private boolean isOperatorSymbol(char c) {
-        return "+-*/=<>!&|".indexOf(c) != -1;
+        return "+-*/=<>!&|.".indexOf(c) != -1;
     }
 
     private boolean isDelimiterOrBracket(char c) {
-        return "(){},;[]<>".indexOf(c) != -1;
+        return "(){},;[]@?".indexOf(c) != -1;
+    }
+
+    private boolean isColon(char c) {
+        return c == ':';
     }
 
     private void handleUnknownToken(char currentChar) {
