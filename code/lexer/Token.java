@@ -6,7 +6,7 @@ package code.lexer;
  */
 public class Token {
     private final TokenType type;  // The type of the token (e.g., IDENTIFIER, KEYWORD)
-    private final String value;   // The actual value of the token
+    private final String lexeme;   // The actual value of the token
     private final int line;       // Line number where the token was found
     private final int column;     // Column number where the token starts
 
@@ -14,13 +14,13 @@ public class Token {
           * Constructs a Token with the specified type, value, line, and column.
           *
           * @param type   the type of the token
-          * @param value  the value of the token
+          * @param lexeme  the lexeme of the token
           * @param line   the line number of the token
           * @param column the column number of the token
           */
-     public Token(TokenType type, String value, int line, int column) {
+     public Token(TokenType type, String lexeme, int line, int column) {
           this.type = type;
-          this.value = value;
+          this.lexeme = lexeme;
           this.line = line;
           this.column = column;
      }
@@ -29,8 +29,8 @@ public class Token {
           return this.type;
      }
 
-     public String getValue() {
-          return this.value;
+     public String getLexeme() {
+          return this.lexeme;
      }
 
      public int getLine() {
@@ -49,8 +49,9 @@ public class Token {
           */
      @Override
      public String toString() {
-          String sanitizedValue = value.replace("\n", "\\n").replace("\r", "");
-          return String.format("%-20s\t%s\t[Line: %d] [Column: %d]", type, sanitizedValue, line, column);
+          String sanitizedLexeme = lexeme.replace("\n", "\\n").replace("\r", "");
+          return String.format("%-20s %-15s Line: %-3d Column: %-3d",
+                                   type, sanitizedLexeme, line, column);
      }
 
      /**
@@ -59,6 +60,7 @@ public class Token {
           * @return header string
           */
      public static String header() {
-          return String.format("%-20s\t%s", "TOKEN TYPE", "VALUE");
+          return String.format("%-20s %-15s %-10s %-10s",
+                         "TOKEN TYPE", "LEXEME", "LINE", "COLUMN");
      }
 }

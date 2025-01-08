@@ -15,6 +15,10 @@ import code.util.SourceReader;
  * Entry point for testing the lexical analyzer.
  * Loads a source file, invokes the Lexer, and outputs tokens or error messages.
  */
+
+// java code.main.Main <filePath> [--verbose] [--output=text|json]
+// java code.main.Main source.xpresso --verbose --output=json
+
 public class Main {
     public static void main(String[] args) {
         System.out.println("Welcome to X-presso Lexer!");
@@ -113,8 +117,8 @@ public class Main {
             Token token = tokens.get(i);
             if (verbose || token.getType() != TokenType.WHITESPACE) {
                 System.out.print("  {");
-                System.out.printf("\"type\": \"%s\", \"value\": \"%s\", \"line\": %d, \"column\": %d",
-                                    token.getType(), token.getValue(), token.getLine(), token.getColumn());
+                System.out.printf("\n    \"type\": \"%s\",\n    \"lexeme\": \"%s\",\n    \"line\": %d,\n    \"column\": %d\n  ",
+                                    token.getType(), token.getLexeme(), token.getLine(), token.getColumn());
                 System.out.println(i < tokens.size() - 1 ? "}," : "}");
             }
         }

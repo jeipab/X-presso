@@ -1,0 +1,4 @@
+Date currentDay = System::today();
+currentDay = [2002|11|26];
+
+float = 10.5;
