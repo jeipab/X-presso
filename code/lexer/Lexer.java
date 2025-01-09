@@ -217,6 +217,49 @@ public class Lexer {
         operator.append(firstChar);
         
         // Handle unary operators
+        // Handle -> operator
+        if ((firstChar == '-' && reader.peek() == '>')) {
+            operator.append(reader.readNext());
+            tokens.add(new Token(TokenType.METHOD_OP, operator.toString(), reader.getLine(), reader.getColumn()));
+            return;
+        }
+
+        // Handle bitwise operators
+        if (firstChar == '<' || firstChar == '>') {
+            char nextChar = reader.peek();
+            if (operator.toString().equals("<") && nextChar == '<') {
+                operator.append(reader.readNext()); 
+                nextChar = reader.peek();
+                if (nextChar == '<') {
+                    operator.append(reader.readNext()); 
+                    nextChar = reader.peek();
+                    if (nextChar == '<') {
+                        operator.append(reader.readNext()); 
+                        tokens.add(new Token(TokenType.BIT_OP, operator.toString(), reader.getLine(), reader.getColumn()));
+                        return; // For '<<<
+                    }
+                }
+                tokens.add(new Token(TokenType.BIT_OP, operator.toString(), reader.getLine(), reader.getColumn()));
+                return; // For '<<'
+            }
+    
+            // Check for '>>'
+            if (operator.toString().equals(">") && nextChar == '>') {
+                operator.append(reader.readNext()); 
+                nextChar = reader.peek();
+                if (nextChar == '>') {
+                    operator.append(reader.readNext()); 
+                    nextChar = reader.peek();
+                    if (nextChar == '>') {
+                        operator.append(reader.readNext()); 
+                        tokens.add(new Token(TokenType.BIT_OP, operator.toString(), reader.getLine(), reader.getColumn()));
+                        return; // For '>>>'
+                    }
+                }
+                tokens.add(new Token(TokenType.BIT_OP, operator.toString(), reader.getLine(), reader.getColumn()));
+                return; // For '>>'
+            }
+        }
         if ((firstChar == '+' || firstChar == '-') && isUnaryContext()) {
             tokens.add(new Token(TokenType.UNARY_OP, String.valueOf(firstChar), reader.getLine(), reader.getColumn()));
             return;
