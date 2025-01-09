@@ -5,8 +5,6 @@ import java.util.List;
 
 import language.SpecialWords;
 import util.SourceReader;
-import util.SourceReader.SourceReaderException;
-
 
 /**
  * Lexer class that performs lexical analysis on a given source code.
