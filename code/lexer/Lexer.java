@@ -48,14 +48,14 @@ public class Lexer {
                     handleColon(currentChar);
                 } else if (currentChar=='.') {
                     handlePeriods(currentChar);
+                } else if (currentChar == '/') {
+                    handleComment(currentChar);
                 } else if (currentChar == '<' || currentChar == '>') {
                     handleObjectDelimiterOrOperator(currentChar);
                 } else if (isOperatorSymbol(currentChar)) {
                     handleOperator(currentChar);
                 } else if (isDelimiterOrBracket(currentChar)) {
                     handleDelimiterOrBracket(currentChar);
-                } else if (currentChar == '/') {
-                    handleComment(currentChar);
                 } else if (currentChar == '"' || currentChar == '\'') {
                     handleStringLiteral(currentChar);
                 } else {
@@ -456,24 +456,34 @@ public class Lexer {
     }
 
     private void handleComment(char firstChar) throws SourceReader.SourceReaderException {
+        StringBuilder comment = new StringBuilder();
+        comment.append(firstChar);
         if (reader.peek() == '/') { // Single-line comment
-            while (reader.readNext() != '\n' && reader.peek() != SourceReader.EOF) {}
-        } else if (reader.peek() == '*') { // Multi-line comment
-            reader.readNext();
-            while (!(reader.readNext() == '*' && reader.peek() == '/')) {
-                if (reader.peek() == SourceReader.EOF) {
-                    handleError("Unterminated comment");
-                    return;
-                }
+            while (reader.peek() != '\n' && reader.peek() != SourceReader.EOF) {
+                comment.append(reader.readNext());
             }
-            reader.readNext();
+        } else if (reader.peek() == '*') { // Multi-line comment
+            comment.append(reader.readNext());
+            while (!(comment.charAt(comment.length()-1) == '*' && reader.peek() == '/')) {
+                comment.append(reader.readNext());
+            }
+            if (reader.peek()=='/') {
+                comment.append(reader.readNext());
+            }
+            if (reader.peek() == SourceReader.EOF) {
+                handleError("Unterminated comment");
+                return;
+            }
         } else {
-            tokens.add(new Token(TokenType.ARITHMETIC_OP, "/", reader.getLine(), reader.getColumn()));
+            handleOperator('/');
+            return;
         }
+
+        tokens.add(new Token(TokenType.COMMENT, comment.toString(), reader.getLine(), reader.getColumn()));
     }
 
     private boolean isOperatorSymbol(char c) {
-        return "+-*/=%?<>!&|^~.:".indexOf(c) != -1;
+        return "+-*=%?<>!&|^~.:".indexOf(c) != -1;
     }
 
     private boolean isDelimiterOrBracket(char c) {
