@@ -14,6 +14,7 @@ public class SpecialWords {
      */
     private final String[] reservedWords = {"abstract", "after", "ALIAS", "before", "bool", "byte", "char", "class", "Complex", "Date", "double", "exclude", "export_as", "Frac", "filter_by", "final", "float", "inline_query", "inspect", "int", "long", "main", "modify", "native", "private", "protected", "public", "Rational", "short", "static", "STRICT", "strictfp", "str", "today", "toMixed", "transient", "validate", "volatile", "isValid"};
     private final String[] keywords = {"break", "case", "day", "default", "do", "else", "exit", "exit-when", "for", "from", "get", "having", "if", "in", "Input", "limit", "month", "order_by", "Output", "print", "select", "switch", "switch-fall", "System", "while", "where", "where-type", "year"};
+
     private static final String noiseWord = "general";
 
     /*
