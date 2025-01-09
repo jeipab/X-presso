@@ -47,6 +47,8 @@ public class Lexer {
                     handleColon(currentChar);
                 } else if (currentChar=='.') {
                     handlePeriods(currentChar);
+                } else if (currentChar == '<' || currentChar == '>') {
+                    handleObjectDelimiterOrOperator(currentChar);
                 } else if (isOperatorSymbol(currentChar)) {
                     handleOperator(currentChar);
                 } else if (isDelimiterOrBracket(currentChar)) {
@@ -140,14 +142,28 @@ public class Lexer {
         }
     }
 
-    private void handleColon(char firstChar) throws SourceReader.SourceReaderException{
+    private void handleColon(char firstChar) throws SourceReader.SourceReaderException {
         StringBuilder symbol = new StringBuilder();
         symbol.append(firstChar);
-
-        if (isColon(reader.peek())) {
+    
+        if (reader.peek() == '>') {
+            // Read the first '>'
+            symbol.append(reader.readNext());
+    
+            if (reader.peek() == '>') {
+                // Read the second '>' for :>>
+                symbol.append(reader.readNext());
+                tokens.add(new Token(TokenType.INHERIT_OP, symbol.toString(), reader.getLine(), reader.getColumn()));
+            } else {
+                // Handle :> (extends)
+                tokens.add(new Token(TokenType.INHERIT_OP, symbol.toString(), reader.getLine(), reader.getColumn()));
+            }
+        } else if (isColon(reader.peek())) {
+            // Handle :: (method operator)
             symbol.append(reader.readNext());
             tokens.add(new Token(TokenType.METHOD_OP, symbol.toString(), reader.getLine(), reader.getColumn()));
         } else {
+            // Handle single colon
             tokens.add(new Token(TokenType.PUNC_DELIM, symbol.toString(), reader.getLine(), reader.getColumn()));
         }
     }
@@ -173,12 +189,101 @@ public class Lexer {
     private void handleOperator(char firstChar) throws SourceReader.SourceReaderException {
         StringBuilder operator = new StringBuilder();
         operator.append(firstChar);
-
-        if (isOperatorSymbol(reader.peek())) {
-            operator.append(reader.readNext()); // Handle multi-character operators
+        
+        // Handle unary operators
+        if ((firstChar == '+' || firstChar == '-') && isUnaryContext()) {
+            tokens.add(new Token(TokenType.UNARY_OP, String.valueOf(firstChar), reader.getLine(), reader.getColumn()));
+            return;
         }
+    
+        // Handle ! as logical operator
+        if (firstChar == '!' && reader.peek() != '=') {
+            tokens.add(new Token(TokenType.LOG_OP, "!", reader.getLine(), reader.getColumn()));
+            return;
+        }
+    
+        // Handle ~ as bitwise operator
+        if (firstChar == '~') {
+            tokens.add(new Token(TokenType.BIT_OP, "~", reader.getLine(), reader.getColumn()));
+            return;
+        }
+    
+        // Handle method operator (.)
+        if (firstChar == '.' && !Character.isDigit(reader.peek())) {
+            tokens.add(new Token(TokenType.METHOD_OP, ".", reader.getLine(), reader.getColumn()));
+            return;
+        }
+    
+        // Handle multi-character operators
+        while (isOperatorSymbol(reader.peek())) {
+            char nextChar = reader.peek();
+            String currentOp = operator.toString() + nextChar;
+            
+            // Handle >>> operator
+            if (currentOp.equals(">>") && reader.peek() == '>') {
+                operator.append(reader.readNext()).append(reader.readNext());
+                tokens.add(new Token(TokenType.BIT_OP, ">>>", reader.getLine(), reader.getColumn()));
+                return;
+            }
+            
+            // Handle two-character operators
+            if (isValidTwoCharOperator(currentOp)) {
+                operator.append(reader.readNext());
+                String op = operator.toString();
+                TokenType type = categorizeOperator(op);
+                tokens.add(new Token(type, op, reader.getLine(), reader.getColumn()));
+                return;
+            }
+            
+            break;
+        }
+    
+        // Handle single-character operators
+        String op = operator.toString();
+        if (op.equals("<") || op.equals(">")) {
+            tokens.add(new Token(TokenType.RELATIONAL_OP, op, reader.getLine(), reader.getColumn()));
+        } else {
+            TokenType type = categorizeOperator(op);
+            tokens.add(new Token(type, op, reader.getLine(), reader.getColumn()));
+        }
+    }
 
-        tokens.add(new Token(TokenType.ARITHMETIC_OP, operator.toString(), reader.getLine(), reader.getColumn()));
+    private TokenType categorizeOperator(String op) {
+        return switch (op) {
+            case "+", "-", "*", "/", "%" -> TokenType.ARITHMETIC_OP;
+            case "%=", "?=", "=", "+=", "-=", "*=", "/=" -> TokenType.ASSIGN_OP;
+            case ">", "<", ">=", "<=", "==", "!=" -> TokenType.RELATIONAL_OP;
+            case "&&", "||", "!" -> TokenType.LOG_OP;
+            case "&", "|", "~", "<<", ">>", ">>>" -> TokenType.BIT_OP;
+            case "." -> TokenType.METHOD_OP;
+            case "::", "->" -> TokenType.METHOD_OP;
+            case "...", ".." -> TokenType.LOOP_OP;
+            case ":>", ":>>", ":<" -> TokenType.INHERIT_OP;
+            default -> TokenType.UNKNOWN;
+        };
+    }
+
+    private boolean isValidTwoCharOperator(String op) {
+        return op.equals("==") || op.equals("!=") || op.equals("<=") || op.equals(">=") 
+            || op.equals("&&") || op.equals("||") || op.equals("<<") || op.equals(">>")
+            || op.equals("%=") || op.equals("?=") || op.equals("+=") || op.equals("-=")
+            || op.equals("*=") || op.equals("/=") || op.equals("::") || op.equals("->")
+            || op.equals("..") || op.equals(":>") || op.equals(":<");
+    }
+
+    private boolean isUnaryContext() {
+        if (tokens.isEmpty()) return true;
+        Token lastToken = tokens.get(tokens.size() - 1);
+        TokenType type = lastToken.getType();
+        return type == TokenType.DELIM 
+            || type == TokenType.PUNC_DELIM 
+            || type == TokenType.WHITESPACE
+            || type == TokenType.ARITHMETIC_OP 
+            || type == TokenType.ASSIGN_OP
+            || type == TokenType.RELATIONAL_OP 
+            || type == TokenType.LOG_OP
+            || type == TokenType.METHOD_OP 
+            || type == TokenType.INHERIT_OP;
     }
 
     private void handleDateOrFraction(StringBuilder value) throws SourceReader.SourceReaderException{
@@ -199,9 +304,49 @@ public class Lexer {
 
     private void handleDelimiterOrBracket(char firstChar) {
         if ("[](){}".indexOf(firstChar) != -1) {
-            tokens.add(new Token(TokenType.DELIMITER, String.valueOf(firstChar), reader.getLine(), reader.getColumn()));
+            tokens.add(new Token(TokenType.DELIM, String.valueOf(firstChar), reader.getLine(), reader.getColumn()));
         } else if (".;?@".indexOf(firstChar) != -1) {
             tokens.add(new Token(TokenType.PUNC_DELIM, String.valueOf(firstChar), reader.getLine(), reader.getColumn()));
+        }
+    }
+
+    private void handleObjectDelimiterOrOperator(char firstChar) throws SourceReader.SourceReaderException {
+        // This method remains unchanged as it correctly handles object delimiters
+        // The operator part is now handled by handleOperator method
+        int startLine = reader.getLine();
+        int startColumn = reader.getColumn();
+    
+        if (firstChar == '<') {
+            char nextChar = reader.peek();
+    
+            if (Character.isLetter(nextChar) || nextChar == '"' || nextChar == '\'') {
+                tokens.add(new Token(TokenType.OBJECT_DELIM, "<", startLine, startColumn));
+    
+                if (nextChar == '"' || nextChar == '\'') {
+                    handleStringLiteral(reader.readNext());
+                } else {
+                    StringBuilder typeName = new StringBuilder();
+                    while (Character.isLetterOrDigit(reader.peek()) || reader.peek() == '_') {
+                        typeName.append(reader.readNext());
+                    }
+                    tokens.add(new Token(TokenType.STR_LIT, typeName.toString(), reader.getLine(), reader.getColumn()));
+                }
+    
+                if (reader.peek() == '>') {
+                    tokens.add(new Token(TokenType.OBJECT_DELIM, ">", reader.getLine(), reader.getColumn()));
+                    reader.readNext();
+                } else {
+                    throw new SourceReader.SourceReaderException("Expected '>' to close object delimiter.");
+                }
+            } else {
+                handleOperator(firstChar);
+            }
+        } else if (firstChar == '>') {
+            if (!tokens.isEmpty() && tokens.get(tokens.size() - 1).getType() == TokenType.OBJECT_DELIM) {
+                tokens.add(new Token(TokenType.OBJECT_DELIM, ">", startLine, startColumn));
+            } else {
+                handleOperator(firstChar);
+            }
         }
     }
 
@@ -239,7 +384,7 @@ public class Lexer {
     }
 
     private boolean isOperatorSymbol(char c) {
-        return "+-*/=<>!&|".indexOf(c) != -1;
+        return "+-*/=%?<>!&|^~.:".indexOf(c) != -1;
     }
 
     private boolean isDelimiterOrBracket(char c) {

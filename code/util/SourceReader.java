@@ -129,5 +129,10 @@ public class SourceReader {
         public SourceReaderException(String message, Throwable cause) {
             super(message, cause);
         }
+
+        // Overloaded constructor that accepts only a message
+        public SourceReaderException(String message) {
+            super(message);
+        }
     }
 }

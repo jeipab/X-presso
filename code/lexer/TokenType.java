@@ -13,14 +13,14 @@ public enum TokenType {
 
      // Operators
      ARITHMETIC_OP,
-     ASSIGNMENT_OP,
+     ASSIGN_OP,
      RELATIONAL_OP,
-     LOGICAL_OP,
+     LOG_OP,
      UNARY_OP,
-     TERNARY_OP,
-     BITWISE_OP,
+     BIT_OP,
      METHOD_OP,
      LOOP_OP,
+     INHERIT_OP,
 
      // Literals
      INT_LIT,
@@ -34,7 +34,7 @@ public enum TokenType {
      COMP_LIT,
 
      // Delimiters
-     DELIMITER,
+     DELIM,
      PUNC_DELIM,
      STRING_DELIM,
      OBJECT_DELIM,
@@ -49,5 +49,6 @@ public enum TokenType {
      ESCAPE_CHAR,
 
      // End of File
-     EOF
+     EOF,
+     UNKNOWN
 }
