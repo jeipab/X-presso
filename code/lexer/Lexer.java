@@ -216,6 +216,13 @@ public class Lexer {
         StringBuilder operator = new StringBuilder();
         operator.append(firstChar);
 
+        // Check for `->` operator
+        if (firstChar == '-' && reader.peek() == '>') {
+            operator.append(reader.readNext());
+            tokens.add(new Token(TokenType.METHOD_OP, operator.toString(), reader.getLine(), reader.getColumn()));
+            return;
+        }
+        
         // Check for multi-character operators (++ and --)
         if ((firstChar == '+' || firstChar == '-') && reader.peek() == firstChar) {
             operator.append(reader.readNext());
@@ -295,13 +302,12 @@ public class Lexer {
             case ">", "<", ">=", "<=", "==", "!=" -> TokenType.RELATIONAL_OP;
             case "&&", "||", "!" -> TokenType.LOG_OP;
             case "&", "|", "~", "<<", ">>", ">>>" -> TokenType.BIT_OP;
-            case "." -> TokenType.METHOD_OP;
-            case "::", "->" -> TokenType.METHOD_OP;
+            case ".", "::", "->" -> TokenType.METHOD_OP;
             case "...", ".." -> TokenType.LOOP_OP;
-            case ":>", ":>>", ":<" -> TokenType.INHERIT_OP;
+            case ":>", ":>>" -> TokenType.INHERIT_OP;
             default -> TokenType.UNKNOWN;
         };
-    }
+    }    
 
     private boolean isValidTwoCharOperator(String op) {
         return op.equals("==") || op.equals("!=") || op.equals("<=") || op.equals(">=") 
