@@ -5,6 +5,7 @@ import java.util.List;
 
 import language.SpecialWords;
 import util.SourceReader;
+import util.SourceReader.SourceReaderException;
 
 
 /**
@@ -39,6 +40,8 @@ public class Lexer {
             while ((currentChar = reader.readNext()) != SourceReader.EOF) {
                 if (Character.isWhitespace(currentChar)) {
                     handleWhitespace(currentChar);
+                } else if(currentChar=='$') {
+                    handleComplexLiteral(currentChar);
                 } else if (Character.isLetter(currentChar)) {
                     handleIdentifierOrKeyword(currentChar);
                 } else if (Character.isDigit(currentChar)) {
@@ -84,6 +87,31 @@ public class Lexer {
 
         // Add a WHITESPACE token with the collected value
         tokens.add(new Token(TokenType.WHITESPACE, whitespace.toString(), startLine, startColumn));
+    }
+
+    private void handleComplexLiteral(char firstChar) throws SourceReader.SourceReaderException{
+        StringBuilder complex = new StringBuilder();
+        complex.append(firstChar);
+
+        int count = 0;
+        if (reader.peek()=='(') {
+            complex.append(reader.readNext());
+            while (Character.isDigit(reader.peek()) || reader.peek()==',') {
+                if (reader.peek()==',') {
+                    count++;
+                    if (count>1) break; //only one comma
+                }
+                complex.append(reader.readNext());
+            }
+
+            if (reader.peek()==')') {
+                complex.append(reader.readNext());
+                tokens.add(new Token(TokenType.COMP_LIT, complex.toString(), reader.getLine(), reader.getColumn()));
+            }
+        } else {
+            handleError("Invalid token starting with '$'");
+        } 
+        
     }
 
     private void handleIdentifierOrKeyword(char firstChar) throws SourceReader.SourceReaderException {
