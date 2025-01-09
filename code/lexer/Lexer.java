@@ -6,6 +6,7 @@ import java.util.List;
 import language.SpecialWords;
 import util.SourceReader;
 
+
 /**
  * Lexer class that performs lexical analysis on a given source code.
  * It converts the input into a list of tokens.
@@ -42,6 +43,10 @@ public class Lexer {
                     handleIdentifierOrKeyword(currentChar);
                 } else if (Character.isDigit(currentChar)) {
                     handleNumberLiteral(currentChar);
+                } else if (isColon(currentChar)) {
+                    handleColon(currentChar);
+                } else if (currentChar=='.') {
+                    handlePeriods(currentChar);
                 } else if (isOperatorSymbol(currentChar)) {
                     handleOperator(currentChar);
                 } else if (isDelimiterOrBracket(currentChar)) {
@@ -83,7 +88,7 @@ public class Lexer {
         StringBuilder identifier = new StringBuilder();
         identifier.append(firstChar);
 
-        while (Character.isLetterOrDigit(reader.peek()) || reader.peek() == '_') {
+        while (Character.isLetterOrDigit(reader.peek()) || reader.peek() == '_' || reader.peek() == '-') {
             identifier.append(reader.readNext());
         }
 
@@ -92,7 +97,7 @@ public class Lexer {
             tokens.add(new Token(TokenType.KEYWORD, identifierStr, reader.getLine(), reader.getColumn()));
         } else if (specialWords.isReservedWord(identifierStr)) {
             tokens.add(new Token(TokenType.RESERVED_WORD, identifierStr, reader.getLine(), reader.getColumn()));
-        } else {
+        } else if (identifierStr.indexOf('-') == -1) {
             tokens.add(new Token(TokenType.IDENTIFIER, identifierStr, reader.getLine(), reader.getColumn()));
         }
     }
@@ -102,16 +107,67 @@ public class Lexer {
         number.append(firstChar);
 
         boolean isFloat = false;
+        boolean PeriodOperator = false;
         while (Character.isDigit(reader.peek()) || reader.peek() == '.') {
             if (reader.peek() == '.') {
-                if (isFloat) break; // Only one decimal point allowed
+                if (isFloat) {
+                    PeriodOperator = true;
+                    number.deleteCharAt(number.length()-1);
+                    isFloat = false;    
+                    break;
+                } // Only one decimal point allowed
                 isFloat = true;
             }
             number.append(reader.readNext());
         }
 
+        if (reader.peek()=='|') {
+            number.append(reader.readNext());
+            if (Character.isDigit(reader.peek())) {
+                handleDateOrFraction(number);
+                return;
+            } else if (isOperatorSymbol(reader.peek())) {
+                handleOperator('|');
+                return;
+            }
+        }
+
         TokenType type = isFloat ? TokenType.FLOAT_LITERAL : TokenType.INTEGER_LITERAL;
         tokens.add(new Token(type, number.toString(), reader.getLine(), reader.getColumn()));
+
+        if (PeriodOperator) {
+            handlePeriods('.');
+        }
+    }
+
+    private void handleColon(char firstChar) throws SourceReader.SourceReaderException{
+        StringBuilder symbol = new StringBuilder();
+        symbol.append(firstChar);
+
+        if (isColon(reader.peek())) {
+            symbol.append(reader.readNext());
+            tokens.add(new Token(TokenType.METHOD_OPERATOR, symbol.toString(), reader.getLine(), reader.getColumn()));
+        } else {
+            tokens.add(new Token(TokenType.PUNCTUATION_DELIMITER, symbol.toString(), reader.getLine(), reader.getColumn()));
+        }
+    }
+
+    private void handlePeriods(char firstChar) throws SourceReader.SourceReaderException {
+        StringBuilder symbol = new StringBuilder();
+        symbol.append(firstChar);
+
+        int count = 1;
+        while (reader.peek()=='.') {
+            count++;
+            if (count>3) break; //more than 3 periods not allowed
+            symbol.append(reader.readNext());
+        }
+
+        if (count==1) {
+            tokens.add(new Token(TokenType.METHOD_OPERATOR, symbol.toString(), reader.getLine(), reader.getColumn()));
+        } else if (count==3) {
+            tokens.add(new Token(TokenType.LOOP_OPERATOR, symbol.toString(), reader.getLine(), reader.getColumn()));
+        } 
     }
 
     private void handleOperator(char firstChar) throws SourceReader.SourceReaderException {
@@ -125,8 +181,28 @@ public class Lexer {
         tokens.add(new Token(TokenType.ARITHMETIC_OPERATOR, operator.toString(), reader.getLine(), reader.getColumn()));
     }
 
+    private void handleDateOrFraction(StringBuilder value) throws SourceReader.SourceReaderException{
+        int count = 1;
+        while (Character.isDigit(reader.peek()) || reader.peek() == '|') {
+            if (reader.peek()=='|') {
+                count++;
+                if (count>2) break; //More than 2 '|' is not permitted 
+            }
+            if (count<=2) {
+                value.append(reader.readNext());
+            }
+        }
+
+        TokenType type = (count==2) ? TokenType.DATE_LITERAL : TokenType.FRACTION_LITERAL;
+        tokens.add(new Token(type, value.toString(), reader.getLine(), reader.getColumn()));
+    }
+
     private void handleDelimiterOrBracket(char firstChar) {
-        tokens.add(new Token(TokenType.DELIMITER, String.valueOf(firstChar), reader.getLine(), reader.getColumn()));
+        if ("[](){}".indexOf(firstChar) != -1) {
+            tokens.add(new Token(TokenType.DELIMITER, String.valueOf(firstChar), reader.getLine(), reader.getColumn()));
+        } else if (".;?@".indexOf(firstChar) != -1) {
+            tokens.add(new Token(TokenType.PUNCTUATION_DELIMITER, String.valueOf(firstChar), reader.getLine(), reader.getColumn()));
+        }
     }
 
     private void handleStringLiteral(char quote) throws SourceReader.SourceReaderException {
@@ -167,7 +243,11 @@ public class Lexer {
     }
 
     private boolean isDelimiterOrBracket(char c) {
-        return "(){},;[]<>".indexOf(c) != -1;
+        return "(){},;[]@?".indexOf(c) != -1;
+    }
+
+    private boolean isColon(char c) {
+        return c == ':';
     }
 
     private void handleUnknownToken(char currentChar) {

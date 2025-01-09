@@ -19,6 +19,8 @@ public enum TokenType {
      UNARY_OPERATOR,
      TERNARY_OPERATOR,
      BITWISE_OPERATOR,
+     METHOD_OPERATOR,
+     LOOP_OPERATOR,
 
      // Literals
      INTEGER_LITERAL,
@@ -27,6 +29,9 @@ public enum TokenType {
      BOOLEAN_LITERAL,
      CHARACTER_LITERAL,
      NULL_LITERAL,
+     FRACTION_LITERAL,
+     DATE_LITERAL,
+     COMPLEX_LITERAL,
 
      // Delimiters
      DELIMITER,
