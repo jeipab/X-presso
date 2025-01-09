@@ -215,6 +215,20 @@ public class Lexer {
     private void handleOperator(char firstChar) throws SourceReader.SourceReaderException {
         StringBuilder operator = new StringBuilder();
         operator.append(firstChar);
+
+        // Check for multi-character operators (++ and --)
+        if ((firstChar == '+' || firstChar == '-') && reader.peek() == firstChar) {
+            operator.append(reader.readNext());
+            tokens.add(new Token(TokenType.UNARY_OP, operator.toString(), reader.getLine(), reader.getColumn()));
+            return;
+        }
+
+        // Check for exponentiation operator (**)
+        if (firstChar == '*' && reader.peek() == '*') {
+            operator.append(reader.readNext());
+            tokens.add(new Token(TokenType.UNARY_OP, operator.toString(), reader.getLine(), reader.getColumn()));
+            return;
+        }
         
         // Handle unary operators
         // Handle -> operator
