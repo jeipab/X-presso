@@ -132,7 +132,7 @@ public class Lexer {
             }
         }
 
-        TokenType type = isFloat ? TokenType.FLOAT_LITERAL : TokenType.INTEGER_LITERAL;
+        TokenType type = isFloat ? TokenType.FLOAT_LIT : TokenType.INT_LIT;
         tokens.add(new Token(type, number.toString(), reader.getLine(), reader.getColumn()));
 
         if (PeriodOperator) {
@@ -146,9 +146,9 @@ public class Lexer {
 
         if (isColon(reader.peek())) {
             symbol.append(reader.readNext());
-            tokens.add(new Token(TokenType.METHOD_OPERATOR, symbol.toString(), reader.getLine(), reader.getColumn()));
+            tokens.add(new Token(TokenType.METHOD_OP, symbol.toString(), reader.getLine(), reader.getColumn()));
         } else {
-            tokens.add(new Token(TokenType.PUNCTUATION_DELIMITER, symbol.toString(), reader.getLine(), reader.getColumn()));
+            tokens.add(new Token(TokenType.PUNC_DELIM, symbol.toString(), reader.getLine(), reader.getColumn()));
         }
     }
 
@@ -164,9 +164,9 @@ public class Lexer {
         }
 
         if (count==1) {
-            tokens.add(new Token(TokenType.METHOD_OPERATOR, symbol.toString(), reader.getLine(), reader.getColumn()));
+            tokens.add(new Token(TokenType.METHOD_OP, symbol.toString(), reader.getLine(), reader.getColumn()));
         } else if (count==3) {
-            tokens.add(new Token(TokenType.LOOP_OPERATOR, symbol.toString(), reader.getLine(), reader.getColumn()));
+            tokens.add(new Token(TokenType.LOOP_OP, symbol.toString(), reader.getLine(), reader.getColumn()));
         } 
     }
 
@@ -178,7 +178,7 @@ public class Lexer {
             operator.append(reader.readNext()); // Handle multi-character operators
         }
 
-        tokens.add(new Token(TokenType.ARITHMETIC_OPERATOR, operator.toString(), reader.getLine(), reader.getColumn()));
+        tokens.add(new Token(TokenType.ARITHMETIC_OP, operator.toString(), reader.getLine(), reader.getColumn()));
     }
 
     private void handleDateOrFraction(StringBuilder value) throws SourceReader.SourceReaderException{
@@ -193,7 +193,7 @@ public class Lexer {
             }
         }
 
-        TokenType type = (count==2) ? TokenType.DATE_LITERAL : TokenType.FRACTION_LITERAL;
+        TokenType type = (count==2) ? TokenType.DATE_LIT : TokenType.FRAC_LIT;
         tokens.add(new Token(type, value.toString(), reader.getLine(), reader.getColumn()));
     }
 
@@ -201,7 +201,7 @@ public class Lexer {
         if ("[](){}".indexOf(firstChar) != -1) {
             tokens.add(new Token(TokenType.DELIMITER, String.valueOf(firstChar), reader.getLine(), reader.getColumn()));
         } else if (".;?@".indexOf(firstChar) != -1) {
-            tokens.add(new Token(TokenType.PUNCTUATION_DELIMITER, String.valueOf(firstChar), reader.getLine(), reader.getColumn()));
+            tokens.add(new Token(TokenType.PUNC_DELIM, String.valueOf(firstChar), reader.getLine(), reader.getColumn()));
         }
     }
 
@@ -218,7 +218,7 @@ public class Lexer {
             }
         }
         stringLiteral.append(quote);
-        tokens.add(new Token(TokenType.STRING_LITERAL, stringLiteral.toString(), reader.getLine(), reader.getColumn()));
+        tokens.add(new Token(TokenType.STR_LIT, stringLiteral.toString(), reader.getLine(), reader.getColumn()));
     }
 
     private void handleComment(char firstChar) throws SourceReader.SourceReaderException {
@@ -234,7 +234,7 @@ public class Lexer {
             }
             reader.readNext();
         } else {
-            tokens.add(new Token(TokenType.ARITHMETIC_OPERATOR, "/", reader.getLine(), reader.getColumn()));
+            tokens.add(new Token(TokenType.ARITHMETIC_OP, "/", reader.getLine(), reader.getColumn()));
         }
     }
 

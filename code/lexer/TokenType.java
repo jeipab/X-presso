@@ -12,32 +12,32 @@ public enum TokenType {
      RESERVED_WORD,
 
      // Operators
-     ARITHMETIC_OPERATOR,
-     ASSIGNMENT_OPERATOR,
-     RELATIONAL_OPERATOR,
-     LOGICAL_OPERATOR,
-     UNARY_OPERATOR,
-     TERNARY_OPERATOR,
-     BITWISE_OPERATOR,
-     METHOD_OPERATOR,
-     LOOP_OPERATOR,
+     ARITHMETIC_OP,
+     ASSIGNMENT_OP,
+     RELATIONAL_OP,
+     LOGICAL_OP,
+     UNARY_OP,
+     TERNARY_OP,
+     BITWISE_OP,
+     METHOD_OP,
+     LOOP_OP,
 
      // Literals
-     INTEGER_LITERAL,
-     FLOAT_LITERAL,
-     STRING_LITERAL,
-     BOOLEAN_LITERAL,
-     CHARACTER_LITERAL,
-     NULL_LITERAL,
-     FRACTION_LITERAL,
-     DATE_LITERAL,
-     COMPLEX_LITERAL,
+     INT_LIT,
+     FLOAT_LIT,
+     STR_LIT,
+     BOOL_LIT,
+     CHAR_LIT,
+     NULL_LIT,
+     FRAC_LIT,
+     DATE_LIT,
+     COMP_LIT,
 
      // Delimiters
      DELIMITER,
-     PUNCTUATION_DELIMITER,
-     STRING_DELIMITER,
-     OBJECT_DELIMITER,
+     PUNC_DELIM,
+     STRING_DELIM,
+     OBJECT_DELIM,
 
      // Comments
      COMMENT,
@@ -46,7 +46,7 @@ public enum TokenType {
      WHITESPACE,
 
      // Escape Characters
-     ESCAPE_CHARACTER,
+     ESCAPE_CHAR,
 
      // End of File
      EOF
