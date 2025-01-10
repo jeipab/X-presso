@@ -100,7 +100,9 @@ public class Main {
         for (Token token : tokens) {
             if (verbose || token.getType() != TokenType.WHITESPACE) {
                 if (verbose || token.getType() != TokenType.COMMENT)
-                    System.out.println(token); // Token's toString handles formatting
+                    if (verbose || token.getType() != TokenType.EOF){
+                        System.out.println(token); // Token's toString handles formatting
+                    }
             }
         }
     }
@@ -118,10 +120,12 @@ public class Main {
             Token token = tokens.get(i);
             if (verbose || token.getType() != TokenType.WHITESPACE) {
                 if (verbose || token.getType() != TokenType.COMMENT) {
-                    System.out.print("  {");
-                    System.out.printf("\n    \"type\": \"%s\",\n    \"lexeme\": \"%s\",\n    \"line\": %d,\n    \"column\": %d\n  ",
-                                        token.getType(), token.getLexeme(), token.getLine(), token.getColumn());
-                    System.out.println(i < tokens.size() - 1 ? "}," : "}");
+                    if (verbose || token.getType() != TokenType.EOF) {
+                        System.out.print("  {");
+                        System.out.printf("\n    \"type\": \"%s\",\n    \"lexeme\": \"%s\",\n    \"line\": %d,\n    \"column\": %d\n  ",
+                        token.getType(), token.getLexeme(), token.getLine(), token.getColumn());
+                        System.out.println(i < tokens.size() - 1 ? "}," : "}");
+                    }
                 }
             }
         }
