@@ -138,7 +138,12 @@ public class Lexer {
         } else if (specialWords.isReservedWord(identifierStr)) {
             tokens.add(new Token(TokenType.RESERVED_WORD, identifierStr, reader.getLine(), reader.getColumn()));
         } else if (identifierStr.indexOf('-') == -1) {
-            tokens.add(new Token(TokenType.IDENTIFIER, identifierStr, reader.getLine(), reader.getColumn()));
+            if (identifierStr.equals("true") || identifierStr.equals("false")) {
+                tokens.add(new Token(TokenType.BOOLEAN_LIT, identifierStr, reader.getLine(), reader.getColumn()));
+            }
+            else {
+                tokens.add(new Token(TokenType.IDENTIFIER, identifierStr, reader.getLine(), reader.getColumn()));
+            }
         }
 
         if (isUnaryMinus) {
@@ -486,6 +491,7 @@ public class Lexer {
             }
         }
     }
+    
 
     private void handleStringLiteral(char quote) throws SourceReader.SourceReaderException {
         StringBuilder stringLiteral = new StringBuilder();
