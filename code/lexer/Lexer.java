@@ -394,7 +394,7 @@ public class Lexer {
     private void handleDelimiterOrBracket(char firstChar) {
         if ("[](){}".indexOf(firstChar) != -1) {
             tokens.add(new Token(TokenType.DELIM, String.valueOf(firstChar), reader.getLine(), reader.getColumn()));
-        } else if (".;?@".indexOf(firstChar) != -1) {
+        } else if (",;?@".indexOf(firstChar) != -1) {
             tokens.add(new Token(TokenType.PUNC_DELIM, String.valueOf(firstChar), reader.getLine(), reader.getColumn()));
         }
     }
