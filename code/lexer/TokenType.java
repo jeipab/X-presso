@@ -31,6 +31,7 @@ public enum TokenType {
      NULL_LIT,
      FRAC_LIT,
      DATE_LIT,
+     BOOLEAN_LIT,
      COMP_LIT,
 
      // Delimiters
