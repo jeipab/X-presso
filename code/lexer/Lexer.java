@@ -116,7 +116,19 @@ public class Lexer {
         StringBuilder identifier = new StringBuilder();
         identifier.append(firstChar);
 
+        int count = 0;
+        boolean isUnaryMinus = false;
         while (Character.isLetterOrDigit(reader.peek()) || reader.peek() == '_' || reader.peek() == '-') {
+            if(reader.peek()=='-') {
+                count++;
+                if (count>1) { //only one hyphen allowed
+                    if (identifier.charAt(identifier.length()-1)=='-') {
+                        identifier.deleteCharAt(identifier.length()-1);
+                        isUnaryMinus = true;
+                    }
+                    break;
+                }
+            }
             identifier.append(reader.readNext());
         }
 
@@ -126,7 +138,16 @@ public class Lexer {
         } else if (specialWords.isReservedWord(identifierStr)) {
             tokens.add(new Token(TokenType.RESERVED_WORD, identifierStr, reader.getLine(), reader.getColumn()));
         } else if (identifierStr.indexOf('-') == -1) {
-            tokens.add(new Token(TokenType.IDENTIFIER, identifierStr, reader.getLine(), reader.getColumn()));
+            if (identifierStr.equals("true") || identifierStr.equals("false")) {
+                tokens.add(new Token(TokenType.BOOLEAN_LIT, identifierStr, reader.getLine(), reader.getColumn()));
+            }
+            else {
+                tokens.add(new Token(TokenType.IDENTIFIER, identifierStr, reader.getLine(), reader.getColumn()));
+            }
+        }
+
+        if (isUnaryMinus) {
+            handleOperator('-');
         }
     }
 
@@ -224,7 +245,13 @@ public class Lexer {
         }
         
         // Check for multi-character operators (++ and --)
-        if ((firstChar == '+' || firstChar == '-') && reader.peek() == firstChar) {
+        if (firstChar == '+' && reader.peek() == '+') {
+            operator.append(reader.readNext());
+            tokens.add(new Token(TokenType.UNARY_OP, operator.toString(), reader.getLine(), reader.getColumn()));
+            return;
+        }
+
+        if (firstChar == '-' && reader.peek() == '-') {
             operator.append(reader.readNext());
             tokens.add(new Token(TokenType.UNARY_OP, operator.toString(), reader.getLine(), reader.getColumn()));
             return;
@@ -281,6 +308,7 @@ public class Lexer {
                 return; // For '>>'
             }
         }
+        
         if ((firstChar == '+' || firstChar == '-') && isUnaryContext()) {
             tokens.add(new Token(TokenType.UNARY_OP, String.valueOf(firstChar), reader.getLine(), reader.getColumn()));
             return;
@@ -362,6 +390,30 @@ public class Lexer {
 
     private boolean isUnaryContext() {
         if (tokens.isEmpty()) return true;
+        
+        // Find the last non-whitespace token
+        Token lastToken = tokens.get(tokens.size() - 1);
+        while (lastToken.getType() == TokenType.WHITESPACE) {
+            // If it's whitespace, skip over it
+            tokens.remove(tokens.size() - 1);
+            
+            if (tokens.isEmpty()) return true; // Return true if no non-whitespace tokens left
+            lastToken = tokens.get(tokens.size() - 1); // Get the new last token
+        }
+    
+        TokenType type = lastToken.getType();
+        return type == TokenType.DELIM 
+            || type == TokenType.PUNC_DELIM 
+            || type == TokenType.ARITHMETIC_OP 
+            || type == TokenType.ASSIGN_OP
+            || type == TokenType.RELATIONAL_OP 
+            || type == TokenType.LOG_OP
+            || type == TokenType.METHOD_OP 
+            || type == TokenType.INHERIT_OP;
+    }
+/* 
+    private boolean isUnaryContext() {
+        if (tokens.isEmpty()) return true;
         Token lastToken = tokens.get(tokens.size() - 1);
         TokenType type = lastToken.getType();
         return type == TokenType.DELIM 
@@ -374,6 +426,7 @@ public class Lexer {
             || type == TokenType.METHOD_OP 
             || type == TokenType.INHERIT_OP;
     }
+    */
 
     private void handleDateOrFraction(StringBuilder value) throws SourceReader.SourceReaderException{
         int count = 1;
@@ -394,7 +447,7 @@ public class Lexer {
     private void handleDelimiterOrBracket(char firstChar) {
         if ("[](){}".indexOf(firstChar) != -1) {
             tokens.add(new Token(TokenType.DELIM, String.valueOf(firstChar), reader.getLine(), reader.getColumn()));
-        } else if (".;?@".indexOf(firstChar) != -1) {
+        } else if (",;?@".indexOf(firstChar) != -1) {
             tokens.add(new Token(TokenType.PUNC_DELIM, String.valueOf(firstChar), reader.getLine(), reader.getColumn()));
         }
     }
@@ -438,19 +491,54 @@ public class Lexer {
             }
         }
     }
+    
 
     private void handleStringLiteral(char quote) throws SourceReader.SourceReaderException {
         StringBuilder stringLiteral = new StringBuilder();
         stringLiteral.append(quote);
-
+    
         char currentChar;
         while ((currentChar = reader.readNext()) != quote) {
-            if (currentChar == '\\') {
-                stringLiteral.append(reader.readNext()); // Escape sequences
+            if (currentChar == '\\') {  // Escape character handling
+                char nextChar = reader.peek();
+                switch (nextChar) {
+                    case 'n':
+                        stringLiteral.append('\n');
+                        tokens.add(new Token(TokenType.ESCAPE_CHAR, "\\n", reader.getLine(), reader.getColumn()));
+                        reader.readNext(); // Skip the 'n'
+                        break;
+                    case 't':
+                        stringLiteral.append('\t');
+                        tokens.add(new Token(TokenType.ESCAPE_CHAR, "\\t", reader.getLine(), reader.getColumn()));
+                        reader.readNext(); // Skip the 't'
+                        break;
+                    case 'r':
+                        stringLiteral.append('\r');
+                        tokens.add(new Token(TokenType.ESCAPE_CHAR, "\\r", reader.getLine(), reader.getColumn()));
+                        reader.readNext(); // Skip the 'r'
+                        break;
+                    case '"':
+                        stringLiteral.append('"');
+                        tokens.add(new Token(TokenType.ESCAPE_CHAR, "\\\"", reader.getLine(), reader.getColumn()));
+                        reader.readNext(); // Skip the '"'
+                        break;
+                    case '\\':
+                        stringLiteral.append('\\');
+                        tokens.add(new Token(TokenType.ESCAPE_CHAR, "\\\\", reader.getLine(), reader.getColumn()));
+                        reader.readNext(); // Skip the '\\'
+                        break;
+                    default:
+                        // If it's an unknown escape sequence, just append the backslash and the next char
+                        stringLiteral.append('\\');
+                        stringLiteral.append(nextChar);
+                        reader.readNext(); // Skip the unknown character
+                        break;
+                }
             } else {
                 stringLiteral.append(currentChar);
             }
         }
+    
         stringLiteral.append(quote);
         tokens.add(new Token(TokenType.STR_LIT, stringLiteral.toString(), reader.getLine(), reader.getColumn()));
     }
