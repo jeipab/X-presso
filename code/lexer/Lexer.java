@@ -116,7 +116,19 @@ public class Lexer {
         StringBuilder identifier = new StringBuilder();
         identifier.append(firstChar);
 
+        int count = 0;
+        boolean isUnaryMinus = false;
         while (Character.isLetterOrDigit(reader.peek()) || reader.peek() == '_' || reader.peek() == '-') {
+            if(reader.peek()=='-') {
+                count++;
+                if (count>1) { //only one hyphen allowed
+                    if (identifier.charAt(identifier.length()-1)=='-') {
+                        identifier.deleteCharAt(identifier.length()-1);
+                        isUnaryMinus = true;
+                    }
+                    break;
+                }
+            }
             identifier.append(reader.readNext());
         }
 
@@ -127,6 +139,10 @@ public class Lexer {
             tokens.add(new Token(TokenType.RESERVED_WORD, identifierStr, reader.getLine(), reader.getColumn()));
         } else if (identifierStr.indexOf('-') == -1) {
             tokens.add(new Token(TokenType.IDENTIFIER, identifierStr, reader.getLine(), reader.getColumn()));
+        }
+
+        if (isUnaryMinus) {
+            handleOperator('-');
         }
     }
 
