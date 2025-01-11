@@ -1,0 +1,7 @@
+TOKEN TYPE           LEXEME          LINE       COLUMN    
+WHITESPACE           \n\n\n          Line: 1   Column: 1  
+RESERVED_WORD        int             Line: 4   Column: 3  
+WHITESPACE                           Line: 4   Column: 4  
+IDENTIFIER           a               Line: 4   Column: 5  
+PUNC_DELIM           ;               Line: 4   Column: 6  
+EOF                                  Line: 4   Column: 6  

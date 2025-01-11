@@ -9,12 +9,12 @@ public enum TokenType {
 
      // Keywords and Reserved Words
      KEYWORD,
-     RESERVED_WORD,
+     RESERVED,
 
      // Operators
      ARITHMETIC_OP,
      ASSIGN_OP,
-     RELATIONAL_OP,
+     REL_OP,
      LOG_OP,
      UNARY_OP,
      BIT_OP,
@@ -31,14 +31,13 @@ public enum TokenType {
      NULL_LIT,
      FRAC_LIT,
      DATE_LIT,
-     BOOLEAN_LIT,
      COMP_LIT,
 
      // Delimiters
      DELIM,
      PUNC_DELIM,
-     STRING_DELIM,
-     OBJECT_DELIM,
+     STR_DELIM,
+     OBJ_DELIM,
 
      // Comments
      COMMENT,

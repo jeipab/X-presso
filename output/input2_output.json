@@ -1,0 +1,170 @@
+[
+  {
+    "type": "RESERVED_WORD",
+    "lexeme": "main",
+    "line": 1,
+    "column": 4
+  },
+  {
+    "type": "WHITESPACE",
+    "lexeme": " ",
+    "line": 1,
+    "column": 5
+  },
+  {
+    "type": "DELIM",
+    "lexeme": "(",
+    "line": 1,
+    "column": 6
+  },
+  {
+    "type": "IDENTIFIER",
+    "lexeme": "args",
+    "line": 1,
+    "column": 10
+  },
+  {
+    "type": "DELIM",
+    "lexeme": ")",
+    "line": 1,
+    "column": 11
+  },
+  {
+    "type": "WHITESPACE",
+    "lexeme": " ",
+    "line": 1,
+    "column": 12
+  },
+  {
+    "type": "DELIM",
+    "lexeme": "{",
+    "line": 1,
+    "column": 13
+  },
+  {
+    "type": "WHITESPACE",
+    "lexeme": "\n    ",
+    "line": 1,
+    "column": 14
+  },
+  {
+    "type": "RESERVED_WORD",
+    "lexeme": "str",
+    "line": 2,
+    "column": 7
+  },
+  {
+    "type": "WHITESPACE",
+    "lexeme": " ",
+    "line": 2,
+    "column": 8
+  },
+  {
+    "type": "IDENTIFIER",
+    "lexeme": "name",
+    "line": 2,
+    "column": 12
+  },
+  {
+    "type": "WHITESPACE",
+    "lexeme": " ",
+    "line": 2,
+    "column": 13
+  },
+  {
+    "type": "ASSIGN_OP",
+    "lexeme": "=",
+    "line": 2,
+    "column": 14
+  },
+  {
+    "type": "WHITESPACE",
+    "lexeme": " ",
+    "line": 2,
+    "column": 15
+  },
+  {
+    "type": "RESERVED_WORD",
+    "lexeme": "STRICT",
+    "line": 2,
+    "column": 21
+  },
+  {
+    "type": "WHITESPACE",
+    "lexeme": " ",
+    "line": 2,
+    "column": 22
+  },
+  {
+    "type": "KEYWORD",
+    "lexeme": "Input",
+    "line": 2,
+    "column": 27
+  },
+  {
+    "type": "METHOD_OP",
+    "lexeme": "::",
+    "line": 2,
+    "column": 29
+  },
+  {
+    "type": "KEYWORD",
+    "lexeme": "get",
+    "line": 2,
+    "column": 32
+  },
+  {
+    "type": "DELIM",
+    "lexeme": "(",
+    "line": 2,
+    "column": 33
+  },
+  {
+    "type": "STR_DELIM",
+    "lexeme": "\"",
+    "line": 2,
+    "column": 34
+  },
+  {
+    "type": "STR_DELIM",
+    "lexeme": "\"",
+    "line": 2,
+    "column": 52
+  },
+  {
+    "type": "STR_LIT",
+    "lexeme": "Enter your name: ",
+    "line": 2,
+    "column": 52
+  },
+  {
+    "type": "DELIM",
+    "lexeme": ")",
+    "line": 2,
+    "column": 53
+  },
+  {
+    "type": "PUNC_DELIM",
+    "lexeme": ";",
+    "line": 2,
+    "column": 54
+  },
+  {
+    "type": "WHITESPACE",
+    "lexeme": "\n    \n",
+    "line": 2,
+    "column": 55
+  },
+  {
+    "type": "DELIM",
+    "lexeme": "}",
+    "line": 4,
+    "column": 1
+  },
+  {
+    "type": "EOF",
+    "lexeme": "",
+    "line": 4,
+    "column": 1
+  }
+]

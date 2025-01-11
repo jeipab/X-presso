@@ -1,0 +1,38 @@
+[
+  {
+    "type": "WHITESPACE",
+    "lexeme": "\r\n\r\n\r\n",
+    "line": 1,
+    "column": 1
+  },
+  {
+    "type": "RESERVED_WORD",
+    "lexeme": "int",
+    "line": 4,
+    "column": 3
+  },
+  {
+    "type": "WHITESPACE",
+    "lexeme": " ",
+    "line": 4,
+    "column": 4
+  },
+  {
+    "type": "IDENTIFIER",
+    "lexeme": "a",
+    "line": 4,
+    "column": 5
+  },
+  {
+    "type": "PUNC_DELIM",
+    "lexeme": ";",
+    "line": 4,
+    "column": 6
+  },
+  {
+    "type": "EOF",
+    "lexeme": "",
+    "line": 4,
+    "column": 6
+  }
+]

@@ -136,10 +136,10 @@ public class Lexer {
         if (specialWords.isKeyword(identifierStr)) {
             tokens.add(new Token(TokenType.KEYWORD, identifierStr, reader.getLine(), reader.getColumn()));
         } else if (specialWords.isReservedWord(identifierStr)) {
-            tokens.add(new Token(TokenType.RESERVED_WORD, identifierStr, reader.getLine(), reader.getColumn()));
+            tokens.add(new Token(TokenType.RESERVED, identifierStr, reader.getLine(), reader.getColumn()));
         } else if (identifierStr.indexOf('-') == -1) {
             if (identifierStr.equals("true") || identifierStr.equals("false")) {
-                tokens.add(new Token(TokenType.BOOLEAN_LIT, identifierStr, reader.getLine(), reader.getColumn()));
+                tokens.add(new Token(TokenType.BOOL_LIT, identifierStr, reader.getLine(), reader.getColumn()));
             }
             else {
                 tokens.add(new Token(TokenType.IDENTIFIER, identifierStr, reader.getLine(), reader.getColumn()));
@@ -359,7 +359,7 @@ public class Lexer {
         // Handle single-character operators
         String op = operator.toString();
         if (op.equals("<") || op.equals(">")) {
-            tokens.add(new Token(TokenType.RELATIONAL_OP, op, reader.getLine(), reader.getColumn()));
+            tokens.add(new Token(TokenType.REL_OP, op, reader.getLine(), reader.getColumn()));
         } else {
             TokenType type = categorizeOperator(op);
             tokens.add(new Token(type, op, reader.getLine(), reader.getColumn()));
@@ -370,7 +370,7 @@ public class Lexer {
         return switch (op) {
             case "+", "-", "*", "/", "%" -> TokenType.ARITHMETIC_OP;
             case "%=", "?=", "=", "+=", "-=", "*=", "/=" -> TokenType.ASSIGN_OP;
-            case ">", "<", ">=", "<=", "==", "!=" -> TokenType.RELATIONAL_OP;
+            case ">", "<", ">=", "<=", "==", "!=" -> TokenType.REL_OP;
             case "&&", "||", "!" -> TokenType.LOG_OP;
             case "&", "|", "~", "<<", ">>", ">>>" -> TokenType.BIT_OP;
             case ".", "::", "->" -> TokenType.METHOD_OP;
@@ -406,27 +406,11 @@ public class Lexer {
             || type == TokenType.PUNC_DELIM 
             || type == TokenType.ARITHMETIC_OP 
             || type == TokenType.ASSIGN_OP
-            || type == TokenType.RELATIONAL_OP 
+            || type == TokenType.REL_OP 
             || type == TokenType.LOG_OP
             || type == TokenType.METHOD_OP 
             || type == TokenType.INHERIT_OP;
     }
-/* 
-    private boolean isUnaryContext() {
-        if (tokens.isEmpty()) return true;
-        Token lastToken = tokens.get(tokens.size() - 1);
-        TokenType type = lastToken.getType();
-        return type == TokenType.DELIM 
-            || type == TokenType.PUNC_DELIM 
-            || type == TokenType.WHITESPACE
-            || type == TokenType.ARITHMETIC_OP 
-            || type == TokenType.ASSIGN_OP
-            || type == TokenType.RELATIONAL_OP 
-            || type == TokenType.LOG_OP
-            || type == TokenType.METHOD_OP 
-            || type == TokenType.INHERIT_OP;
-    }
-    */
 
     private void handleDateOrFraction(StringBuilder value) throws SourceReader.SourceReaderException{
         int count = 1;
@@ -462,7 +446,7 @@ public class Lexer {
             char nextChar = reader.peek();
     
             if (Character.isLetter(nextChar) || nextChar == '"' || nextChar == '\'') {
-                tokens.add(new Token(TokenType.OBJECT_DELIM, "<", startLine, startColumn));
+                tokens.add(new Token(TokenType.OBJ_DELIM, "<", startLine, startColumn));
     
                 if (nextChar == '"' || nextChar == '\'') {
                     handleStringLiteral(reader.readNext());
@@ -475,7 +459,7 @@ public class Lexer {
                 }
     
                 if (reader.peek() == '>') {
-                    tokens.add(new Token(TokenType.OBJECT_DELIM, ">", reader.getLine(), reader.getColumn()));
+                    tokens.add(new Token(TokenType.OBJ_DELIM, ">", reader.getLine(), reader.getColumn()));
                     reader.readNext();
                 } else {
                     throw new SourceReader.SourceReaderException("Expected '>' to close object delimiter.");
@@ -484,8 +468,8 @@ public class Lexer {
                 handleOperator(firstChar);
             }
         } else if (firstChar == '>') {
-            if (!tokens.isEmpty() && tokens.get(tokens.size() - 1).getType() == TokenType.OBJECT_DELIM) {
-                tokens.add(new Token(TokenType.OBJECT_DELIM, ">", startLine, startColumn));
+            if (!tokens.isEmpty() && tokens.get(tokens.size() - 1).getType() == TokenType.OBJ_DELIM) {
+                tokens.add(new Token(TokenType.OBJ_DELIM, ">", startLine, startColumn));
             } else {
                 handleOperator(firstChar);
             }
@@ -495,8 +479,9 @@ public class Lexer {
 
     private void handleStringLiteral(char quote) throws SourceReader.SourceReaderException {
         StringBuilder stringLiteral = new StringBuilder();
-        stringLiteral.append(quote);
-    
+
+        tokens.add(new Token(TokenType.STR_DELIM, String.valueOf(quote), reader.getLine(), reader.getColumn()));
+
         char currentChar;
         while ((currentChar = reader.readNext()) != quote) {
             if (currentChar == '\\') {  // Escape character handling
@@ -538,8 +523,9 @@ public class Lexer {
                 stringLiteral.append(currentChar);
             }
         }
-    
-        stringLiteral.append(quote);
+
+        tokens.add(new Token(TokenType.STR_DELIM, String.valueOf(quote), reader.getLine(), reader.getColumn()));
+
         tokens.add(new Token(TokenType.STR_LIT, stringLiteral.toString(), reader.getLine(), reader.getColumn()));
     }
 

@@ -1,0 +1,74 @@
+[
+  {
+    "type": "RESERVED_WORD",
+    "lexeme": "public",
+    "line": 1,
+    "column": 6
+  },
+  {
+    "type": "RESERVED_WORD",
+    "lexeme": "class",
+    "line": 1,
+    "column": 12
+  },
+  {
+    "type": "IDENTIFIER",
+    "lexeme": "add",
+    "line": 1,
+    "column": 16
+  },
+  {
+    "type": "DELIM",
+    "lexeme": "{",
+    "line": 1,
+    "column": 18
+  },
+  {
+    "type": "RESERVED_WORD",
+    "lexeme": "int",
+    "line": 2,
+    "column": 7
+  },
+  {
+    "type": "IDENTIFIER",
+    "lexeme": "num1",
+    "line": 2,
+    "column": 12
+  },
+  {
+    "type": "ASSIGN_OP",
+    "lexeme": "=",
+    "line": 2,
+    "column": 14
+  },
+  {
+    "type": "INT_LIT",
+    "lexeme": "25",
+    "line": 2,
+    "column": 17
+  },
+  {
+    "type": "ARITHMETIC_OP",
+    "lexeme": "+",
+    "line": 2,
+    "column": 19
+  },
+  {
+    "type": "INT_LIT",
+    "lexeme": "25",
+    "line": 2,
+    "column": 22
+  },
+  {
+    "type": "PUNC_DELIM",
+    "lexeme": ";",
+    "line": 2,
+    "column": 23
+  },
+  {
+    "type": "DELIM",
+    "lexeme": "}",
+    "line": 3,
+    "column": 1
+  }
+]
