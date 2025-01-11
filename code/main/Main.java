@@ -16,8 +16,13 @@ import util.SourceReader;
  * Loads a source file, invokes the Lexer, and outputs tokens or error messages.
  */
 
-// java code.main.Main <filePath> [--verbose] [--output=text|json]
-// java code.main.Main source.xpresso --verbose --output=json
+/* Compile with:
+ * javac -d build -cp code code/main/Main.java  
+ */
+
+/* Run with:
+ * java -cp build main.Main <filePath> [--verbose] [--output=text|json]
+ */
 
 public class Main {
     public static void main(String[] args) {
@@ -53,7 +58,7 @@ public class Main {
             verbose = args.length > 1 && "--verbose".equalsIgnoreCase(args[1]);
             outputFormat = args.length > 2 && args[2].startsWith("--output=") 
                             ? args[2].substring("--output=".length()) 
-                            : "text";
+                            : "text"; // Default if not specified
         }
 
         try {
