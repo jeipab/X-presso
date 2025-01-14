@@ -148,6 +148,7 @@ public class Lexer {
 
     private boolean isValidFraction(String numerator, String denominator) {
         try {
+            @SuppressWarnings("unused")
             int num = Integer.parseInt(numerator);
             int den = Integer.parseInt(denominator);
             return den != 0;
