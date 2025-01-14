@@ -1,13 +1,13 @@
 TOKEN TYPE           LEXEME          LINE       COLUMN    
-RESERVED_WORD        public          Line: 1   Column: 6  
-RESERVED_WORD        class           Line: 1   Column: 12 
-IDENTIFIER           add             Line: 1   Column: 16 
+RESERVED             public          Line: 1   Column: 1  
+RESERVED             class           Line: 1   Column: 8  
+IDENTIFIER           add             Line: 1   Column: 14 
 DELIM                {               Line: 1   Column: 18 
-RESERVED_WORD        int             Line: 2   Column: 7  
-IDENTIFIER           num1            Line: 2   Column: 12 
+RESERVED             int             Line: 2   Column: 5  
+IDENTIFIER           num1            Line: 2   Column: 9  
 ASSIGN_OP            =               Line: 2   Column: 14 
-INT_LIT              25              Line: 2   Column: 17 
+INT_LIT              25              Line: 2   Column: 16 
 ARITHMETIC_OP        +               Line: 2   Column: 19 
-INT_LIT              25              Line: 2   Column: 22 
+INT_LIT              25              Line: 2   Column: 21 
 PUNC_DELIM           ;               Line: 2   Column: 23 
 DELIM                }               Line: 3   Column: 1  

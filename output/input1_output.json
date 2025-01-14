@@ -1,74 +1,140 @@
 [
-  {
-    "type": "RESERVED_WORD",
+{
+    "type": "RESERVED",
     "lexeme": "public",
     "line": 1,
-    "column": 6
-  },
-  {
-    "type": "RESERVED_WORD",
+    "column": 1
+},
+{
+    "type": "WHITESPACE",
+    "lexeme": " ",
+    "line": 1,
+    "column": 7
+},
+{
+    "type": "RESERVED",
     "lexeme": "class",
     "line": 1,
-    "column": 12
-  },
-  {
+    "column": 8
+},
+{
+    "type": "WHITESPACE",
+    "lexeme": " ",
+    "line": 1,
+    "column": 13
+},
+{
     "type": "IDENTIFIER",
     "lexeme": "add",
     "line": 1,
-    "column": 16
-  },
-  {
+    "column": 14
+},
+{
+    "type": "WHITESPACE",
+    "lexeme": " ",
+    "line": 1,
+    "column": 17
+},
+{
     "type": "DELIM",
     "lexeme": "{",
     "line": 1,
     "column": 18
-  },
-  {
-    "type": "RESERVED_WORD",
+},
+{
+    "type": "WHITESPACE",
+    "lexeme": "\r\n    ",
+    "line": 1,
+    "column": 19
+},
+{
+    "type": "RESERVED",
     "lexeme": "int",
     "line": 2,
-    "column": 7
-  },
-  {
+    "column": 5
+},
+{
+    "type": "WHITESPACE",
+    "lexeme": " ",
+    "line": 2,
+    "column": 8
+},
+{
     "type": "IDENTIFIER",
     "lexeme": "num1",
     "line": 2,
-    "column": 12
-  },
-  {
+    "column": 9
+},
+{
+    "type": "WHITESPACE",
+    "lexeme": " ",
+    "line": 2,
+    "column": 13
+},
+{
     "type": "ASSIGN_OP",
     "lexeme": "=",
     "line": 2,
     "column": 14
-  },
-  {
+},
+{
+    "type": "WHITESPACE",
+    "lexeme": " ",
+    "line": 2,
+    "column": 15
+},
+{
     "type": "INT_LIT",
     "lexeme": "25",
     "line": 2,
-    "column": 17
-  },
-  {
+    "column": 16
+},
+{
     "type": "ARITHMETIC_OP",
     "lexeme": "+",
     "line": 2,
     "column": 19
-  },
-  {
+},
+{
+    "type": "WHITESPACE",
+    "lexeme": " ",
+    "line": 2,
+    "column": 20
+},
+{
     "type": "INT_LIT",
     "lexeme": "25",
     "line": 2,
-    "column": 22
-  },
-  {
+    "column": 21
+},
+{
     "type": "PUNC_DELIM",
     "lexeme": ";",
     "line": 2,
     "column": 23
-  },
-  {
+},
+{
+    "type": "WHITESPACE",
+    "lexeme": "\r\n",
+    "line": 2,
+    "column": 24
+},
+{
     "type": "DELIM",
     "lexeme": "}",
     "line": 3,
     "column": 1
-  }
+},
+{
+    "type": "WHITESPACE",
+    "lexeme": "\r\n",
+    "line": 3,
+    "column": 2
+},
+{
+    "type": "EOF",
+    "lexeme": "",
+    "line": 4,
+    "column": 0
+}
 ]
