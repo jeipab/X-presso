@@ -121,10 +121,18 @@ public class Lexer {
     }
 
     private boolean isValidIdentifier(String identifier) {
-        if (identifier.isEmpty() || !Character.isLetter(identifier.charAt(0))) {
+        // Check for empty string
+        if (identifier.isEmpty()) {
             return false;
         }
         
+        // Check first character - must be letter or underscore, not digit
+        char firstChar = identifier.charAt(0);
+        if (Character.isDigit(firstChar)) {
+            return false;
+        }
+        
+        // Check rest of identifier
         for (char c : identifier.toCharArray()) {
             if (!Character.isLetterOrDigit(c) && c != '_' && c != '-') {
                 return false;
@@ -349,8 +357,19 @@ public class Lexer {
         boolean isFloat = false;
         boolean periodOperator = false;
         
-        while (Character.isDigit(reader.peek()) || reader.peek() == '.') {
-            if (reader.peek() == '.') {
+        while (Character.isDigit(reader.peek()) || reader.peek() == '.' || Character.isLetter(reader.peek())) {
+            char nextChar = reader.peek();
+            
+            // If we find a letter, treat the entire sequence as an invalid identifier
+            if (Character.isLetter(nextChar)) {
+                while (Character.isLetterOrDigit(reader.peek()) || reader.peek() == '_' || reader.peek() == '-') {
+                    number.append(reader.readNext());
+                }
+                errorHandler.handleInvalidIdentifier(number.toString(), startLine, startColumn);
+                return;
+            }
+            
+            if (nextChar == '.') {
                 if (isFloat) {
                     periodOperator = true;
                     number.deleteCharAt(number.length()-1);
