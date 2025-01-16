@@ -145,6 +145,62 @@ public class Main {
             }
         }
     }
+
+    /**
+     * Validates the file path.
+     * Checks if the file path is not null or empty and if the file exists and can be read.
+     * If any of these conditions are not met, an error message is printed and the method returns false.
+     * Otherwise, true is returned.
+     * @param path The file path to validate.
+     * @return true if the file path is valid, false otherwise.
+     */
+    private boolean validateFilePath(String path) {
+        if (path == null || path.trim().isEmpty()) {
+            System.err.println("File path cannot be empty.");
+            return false;
+        }
+        
+        File file = new File(path);
+        if (!file.exists()) {
+            System.err.println("File does not exist: " + path);
+            return false;
+        }
+        
+        if (!file.canRead()) {
+            System.err.println("Cannot read file: " + path);
+            return false;
+        }
+        
+        return true;
+    }
+    
+    
+    /**
+     * Validates and normalizes the output format.
+     * 
+     * This method takes a string representing the desired output format and validates it.
+     * If the format is invalid, it prints an error message and returns the default output format.
+     * Otherwise, it returns the validated and normalized output format.
+     * 
+     * @param format The output format to validate (e.g. "text", "json")
+     * @return The validated and normalized output format
+     */
+    private String validateOutputFormat(String format) {
+        if (format == null || (!format.equals("text") && !format.equals("json"))) {
+            System.out.println("Invalid output format, defaulting to 'text'.");
+            return DEFAULT_OUTPUT_FORMAT;
+        }
+        return format;
+    }
+    
+    /**
+     * Outputs tokens in the specified format.
+     * 
+     * If the output format is set to 'file', it writes the tokens to a file in the specified format.
+     * Otherwise, it prints the tokens to the console in the specified format.
+     * @param tokens The list of tokens to output.
+     * @throws IOException If an error occurs while writing to the file.
+     */
     
     /**
      * Processes the input file and generates output.
@@ -227,61 +283,6 @@ public class Main {
         }
     }
     
-    /**
-     * Validates the file path.
-     * Checks if the file path is not null or empty and if the file exists and can be read.
-     * If any of these conditions are not met, an error message is printed and the method returns false.
-     * Otherwise, true is returned.
-     * @param path The file path to validate.
-     * @return true if the file path is valid, false otherwise.
-     */
-    private boolean validateFilePath(String path) {
-        if (path == null || path.trim().isEmpty()) {
-            System.err.println("File path cannot be empty.");
-            return false;
-        }
-        
-        File file = new File(path);
-        if (!file.exists()) {
-            System.err.println("File does not exist: " + path);
-            return false;
-        }
-        
-        if (!file.canRead()) {
-            System.err.println("Cannot read file: " + path);
-            return false;
-        }
-        
-        return true;
-    }
-    
-    
-    /**
-     * Validates and normalizes the output format.
-     * 
-     * This method takes a string representing the desired output format and validates it.
-     * If the format is invalid, it prints an error message and returns the default output format.
-     * Otherwise, it returns the validated and normalized output format.
-     * 
-     * @param format The output format to validate (e.g. "text", "json")
-     * @return The validated and normalized output format
-     */
-    private String validateOutputFormat(String format) {
-        if (format == null || (!format.equals("text") && !format.equals("json"))) {
-            System.out.println("Invalid output format, defaulting to 'text'.");
-            return DEFAULT_OUTPUT_FORMAT;
-        }
-        return format;
-    }
-    
-    /**
-     * Outputs tokens in the specified format.
-     * 
-     * If the output format is set to 'file', it writes the tokens to a file in the specified format.
-     * Otherwise, it prints the tokens to the console in the specified format.
-     * @param tokens The list of tokens to output.
-     * @throws IOException If an error occurs while writing to the file.
-     */
     private void outputTokens(List<Token> tokens) throws IOException {
         if (outputToFile) {
             writeTokensToFile(tokens);

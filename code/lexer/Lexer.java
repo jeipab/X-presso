@@ -170,6 +170,24 @@ public class Lexer {
     }
 
     /**
+     * Checks if the given two-character string is a valid two-character operator.
+     * This method checks if the string matches any of the two-character operators
+     * in the language. It is used to determine if a two-character sequence is a
+     * valid operator or not.
+     *
+     * @param op The two-character string to check.
+     * @return True if the string is a valid two-character operator, false otherwise.
+     */
+    private boolean isValidTwoCharOperator(String op) {
+        // Check if the operator is any of the two-character operators
+        return op.equals("==") || op.equals("!=") || op.equals("<=") || op.equals(">=")
+            || op.equals("&&") || op.equals("||") || op.equals("<<") || op.equals(">>")
+            || op.equals("%=") || op.equals("?=") || op.equals("+=") || op.equals("-=")
+            || op.equals("*=") || op.equals("/=") || op.equals("::") || op.equals("->")
+            || op.equals("..") || op.equals(":>") || op.equals(":<");
+    }
+
+    /**
      * Validates if a given string is a valid identifier.
      * A valid identifier starts with a letter or underscore and may contain letters, digits, underscores, and hyphens.
      *
@@ -241,54 +259,6 @@ public class Lexer {
     }
 
     /**
-     * Categorizes the given operator string into its corresponding token type.
-     * This method uses a switch expression to map operators to token types.
-     *
-     * @param op The operator string to categorize.
-     * @return The TokenType corresponding to the operator.
-     */
-    private TokenType categorizeOperator(String op) {
-        return switch (op) {
-            // Arithmetic operators
-            case "+", "-", "*", "/", "%" -> TokenType.ARITHMETIC_OP;
-            // Assignment operators
-            case "%=", "?=", "=", "+=", "-=", "*=", "/=" -> TokenType.ASSIGN_OP;
-            // Relational operators
-            case ">", "<", ">=", "<=", "==", "!=" -> TokenType.REL_OP;
-            // Logical operators
-            case "&&", "||", "!" -> TokenType.LOG_OP;
-            // Bitwise operators
-            case "&", "|", "~", "<<", ">>", ">>>" -> TokenType.BIT_OP;
-            // Method invocation operators
-            case ".", "::", "->" -> TokenType.METHOD_OP;
-            // Loop operators
-            case "...", ".." -> TokenType.LOOP_OP;
-            // Inheritance operators
-            case ":>", ":>>" -> TokenType.INHERIT_OP;
-            // Default case for unknown operators
-            default -> TokenType.UNKNOWN;
-        };
-    }
-
-    /**
-     * Checks if the given two-character string is a valid two-character operator.
-     * This method checks if the string matches any of the two-character operators
-     * in the language. It is used to determine if a two-character sequence is a
-     * valid operator or not.
-     *
-     * @param op The two-character string to check.
-     * @return True if the string is a valid two-character operator, false otherwise.
-     */
-    private boolean isValidTwoCharOperator(String op) {
-        // Check if the operator is any of the two-character operators
-        return op.equals("==") || op.equals("!=") || op.equals("<=") || op.equals(">=")
-            || op.equals("&&") || op.equals("||") || op.equals("<<") || op.equals(">>")
-            || op.equals("%=") || op.equals("?=") || op.equals("+=") || op.equals("-=")
-            || op.equals("*=") || op.equals("/=") || op.equals("::") || op.equals("->")
-            || op.equals("..") || op.equals(":>") || op.equals(":<");
-    }
-
-    /**
      * Handles whitespace characters in the source code.
      * Accumulates consecutive whitespace characters and adds them as a single token
      * to the token list.
@@ -328,83 +298,6 @@ public class Lexer {
             tokens.add(new Token(TokenType.DELIM, String.valueOf(currentChar), line, startColumn));
         } else if (",;?@".indexOf(currentChar) != -1) {
             tokens.add(new Token(TokenType.PUNC_DELIM, String.valueOf(currentChar), line, startColumn));
-        }
-    }
-
-    /**
-     * Handles the colon (:) operator and its variants.
-     * A single colon is a method operator, a colon followed by a greater than symbol (:) is an
-     * inheritance operator, and a colon followed by two greater than symbols (:>) is also an
-     * inheritance operator.
-     * If more than one colon is encountered, or if the colon is not followed by a valid operator,
-     * an error is reported.
-     * 
-     * @param firstChar The initial colon character.
-     * @throws SourceReader.SourceReaderException If reading from the source encounters an error.
-     */
-    private void handleColon(char firstChar) throws SourceReader.SourceReaderException {
-        StringBuilder symbol = new StringBuilder();
-        symbol.append(firstChar);
-        int startLine = reader.getLine();
-        int startColumn = reader.getColumn();
-
-        if (reader.peek() == '>') {
-            symbol.append(reader.readNext());
-
-            if (reader.peek() == '>') {
-                symbol.append(reader.readNext());
-                tokens.add(new Token(TokenType.INHERIT_OP, symbol.toString(), startLine, startColumn));
-            } else {
-                tokens.add(new Token(TokenType.INHERIT_OP, symbol.toString(), startLine, startColumn));
-            }
-        } else if (isColon(reader.peek())) {
-            symbol.append(reader.readNext());
-            tokens.add(new Token(TokenType.METHOD_OP, symbol.toString(), startLine, startColumn));
-        } else {
-            tokens.add(new Token(TokenType.PUNC_DELIM, symbol.toString(), startLine, startColumn));
-        }
-    }
-
-    /**
-     * Handles the period operator (.) and its variants.
-     * A period by itself is a method operator, two periods (..) is a loop operator,
-     * and three periods (...) is a loop operator.
-     * If more than three consecutive periods are encountered, an error is reported.
-     * 
-     * @param firstChar The initial period character.
-     * @throws SourceReader.SourceReaderException If reading from the source encounters an error.
-     */
-    private void handlePeriods(char firstChar) throws SourceReader.SourceReaderException {
-        StringBuilder symbol = new StringBuilder();
-        symbol.append(firstChar);
-        int startLine = reader.getLine();
-        int startColumn = reader.getColumn();
-
-        int count = 1;
-        while (reader.peek() == '.') {
-            count++;
-            if (count > 3) {
-                errorHandler.reportError(
-                    ErrorType.INVALID_OPERATOR,
-                    "More than three consecutive periods are not allowed",
-                    startLine,
-                    startColumn
-                );
-                break;
-            }
-            symbol.append(reader.readNext());
-        }
-
-        // Determine the type of operator
-        if (count == 1) {
-            // Single period is a method operator
-            tokens.add(new Token(TokenType.METHOD_OP, symbol.toString(), startLine, startColumn));
-        } else if (count == 3) {
-            // Three periods is a loop operator
-            tokens.add(new Token(TokenType.LOOP_OP, symbol.toString(), startLine, startColumn));
-        } else if (count == 2) {
-            // Two periods is a loop operator
-            tokens.add(new Token(TokenType.LOOP_OP, symbol.toString(), startLine, startColumn));
         }
     }
 
@@ -520,132 +413,6 @@ public class Lexer {
         // Handle unary minus operator if applicable
         if (isUnaryMinus) {
             handleOperator('-');
-        }
-    }
-
-    /**
-     * Handles number literals.
-     * It checks if the given string is a valid number, and if so, adds it to the tokens list.
-     * If the string is neither a valid integer nor a valid float, an error is reported to the error handler.
-     * 
-     * @param firstChar The initial character indicating a number ('0' - '9')
-     * @throws SourceReader.SourceReaderException If reading from the source encounters an error.
-     */
-    private void handleNumberLiteral(char firstChar) throws SourceReader.SourceReaderException {
-        StringBuilder number = new StringBuilder();
-        number.append(firstChar);
-        int startLine = reader.getLine();
-        int startColumn = reader.getColumn();
-
-        boolean isFloat = false;
-        boolean periodOperator = false;
-        
-        while (Character.isDigit(reader.peek()) || reader.peek() == '.' || Character.isLetter(reader.peek())) {
-            char nextChar = reader.peek();
-            
-            // If we find a letter, treat the entire sequence as an invalid identifier
-            if (Character.isLetter(nextChar)) {
-                while (Character.isLetterOrDigit(reader.peek()) || reader.peek() == '_' || reader.peek() == '-') {
-                    number.append(reader.readNext());
-                }
-                errorHandler.handleInvalidIdentifier(number.toString(), startLine, startColumn);
-                return;
-            }
-            
-            if (nextChar == '.') {
-                if (isFloat) {
-                    periodOperator = true;
-                    number.deleteCharAt(number.length()-1);
-                    isFloat = false;    
-                    break;
-                }
-                isFloat = true;
-            }
-            number.append(reader.readNext());
-        }
-
-        if (number.toString().endsWith(".")) {
-            errorHandler.handleInvalidNumber(number.toString(), startLine, startColumn);
-            return;
-        }
-
-        if (reader.peek() == '|') {
-            number.append(reader.readNext());
-            if (Character.isDigit(reader.peek())) {
-                handleDateOrFraction(number);
-                return;
-            } else if (isOperatorSymbol(reader.peek())) {
-                handleOperator('|');
-                return;
-            }
-        }
-
-        TokenType type = isFloat ? TokenType.FLOAT_LIT : TokenType.INT_LIT;
-        tokens.add(new Token(type, number.toString(), startLine, startColumn));
-
-        if (periodOperator) {
-            handlePeriods('.');
-        }
-    }
-
-    /**
-     * Handles date and fraction literals.
-     * It checks if the given string is a valid date or fraction, and if so, adds it to the tokens list.
-     * If the string is neither a valid date nor a valid fraction, an error is reported to the error handler.
-     * 
-     * @param value The string to be checked for a valid date or fraction.
-     * @throws SourceReader.SourceReaderException If reading from the source encounters an error.
-     */
-    private void handleDateOrFraction(StringBuilder value) throws SourceReader.SourceReaderException {
-        int startLine = reader.getLine();
-        int startColumn = reader.getColumn();
-        int separatorCount = 1; // Already have one '|'
-        
-        // Read the string until we reach the end of the file or a non-digit character
-        while (reader.peek() != SourceReader.EOF) {
-            char current = reader.peek();
-            if (current == '|') {
-                // Count the number of '|' separators
-                separatorCount++;
-                if (separatorCount > 2) {
-                    // If we have more than 2 separators, it's an invalid date format
-                    errorHandler.handleInvalidDateFormat(value.toString(), startLine, startColumn);
-                    return;
-                }
-            } else if (!Character.isDigit(current)) {
-                // If we encounter a non-digit character, we're done
-                break;
-            }
-            value.append(reader.readNext());
-        }
-
-        // Check if the string is a valid date or fraction
-        if (separatorCount == 2) {
-            // Split the string by '|'
-            String[] parts = value.toString().split("\\|");
-            if (parts.length == 3 && isValidDate(parts[0], parts[1], parts[2])) {
-                // If the string is a valid date, add it to the tokens list
-                tokens.add(new Token(TokenType.DATE_LIT, value.toString(), startLine, startColumn));
-            } else {
-                // If the string is not a valid date, report an error
-                errorHandler.handleInvalidDateFormat(value.toString(), startLine, startColumn);
-            }
-        } else {
-            // Split the string by '|'
-            String[] parts = value.toString().split("\\|");
-            if (parts.length == 2 && isValidFraction(parts[0], parts[1])) {
-                // If the string is a valid fraction, add it to the tokens list
-                tokens.add(new Token(TokenType.FRAC_LIT, value.toString(), startLine, startColumn));
-            } else {
-                // If the string is not a valid fraction, report an error
-                errorHandler.reportError(
-                    ErrorType.INVALID_FRACTION_FORMAT,
-                    "Invalid fraction format: " + value,
-                    startLine,
-                    startColumn,
-                    "Fractions should be in the format numerator|denominator"
-                );
-            }
         }
     }
 
@@ -780,53 +547,236 @@ public class Lexer {
     }
 
     /**
-     * Handles both single-line and multi-line comments.
-     * Adds the comment as a token if properly terminated.
+     * Handles the colon (:) operator and its variants.
+     * A single colon is a method operator, a colon followed by a greater than symbol (:) is an
+     * inheritance operator, and a colon followed by two greater than symbols (:>) is also an
+     * inheritance operator.
+     * If more than one colon is encountered, or if the colon is not followed by a valid operator,
+     * an error is reported.
      * 
-     * @param firstChar The initial character indicating a comment ('/')
-     * @throws SourceReader.SourceReaderException If reading from the source encounters an error
+     * @param firstChar The initial colon character.
+     * @throws SourceReader.SourceReaderException If reading from the source encounters an error.
      */
-    private void handleComment(char firstChar) throws SourceReader.SourceReaderException {
-        StringBuilder comment = new StringBuilder();
-        comment.append(firstChar);
+    private void handleColon(char firstChar) throws SourceReader.SourceReaderException {
+        StringBuilder symbol = new StringBuilder();
+        symbol.append(firstChar);
         int startLine = reader.getLine();
         int startColumn = reader.getColumn();
 
-        // Check for single-line comment
-        if (reader.peek() == '/') { 
-            // Read until the end of the line or EOF
-            while (reader.peek() != '\n' && reader.peek() != SourceReader.EOF) {
-                comment.append(reader.readNext());
+        if (reader.peek() == '>') {
+            symbol.append(reader.readNext());
+
+            if (reader.peek() == '>') {
+                symbol.append(reader.readNext());
+                tokens.add(new Token(TokenType.INHERIT_OP, symbol.toString(), startLine, startColumn));
+            } else {
+                tokens.add(new Token(TokenType.INHERIT_OP, symbol.toString(), startLine, startColumn));
             }
-        // Check for multi-line comment
-        } else if (reader.peek() == '*') { 
-            boolean terminated = false;
+        } else if (isColon(reader.peek())) {
+            symbol.append(reader.readNext());
+            tokens.add(new Token(TokenType.METHOD_OP, symbol.toString(), startLine, startColumn));
+        } else {
+            tokens.add(new Token(TokenType.PUNC_DELIM, symbol.toString(), startLine, startColumn));
+        }
+    }
+
+    /**
+     * Handles the period operator (.) and its variants.
+     * A period by itself is a method operator, two periods (..) is a loop operator,
+     * and three periods (...) is a loop operator.
+     * If more than three consecutive periods are encountered, an error is reported.
+     * 
+     * @param firstChar The initial period character.
+     * @throws SourceReader.SourceReaderException If reading from the source encounters an error.
+     */
+    private void handlePeriods(char firstChar) throws SourceReader.SourceReaderException {
+        StringBuilder symbol = new StringBuilder();
+        symbol.append(firstChar);
+        int startLine = reader.getLine();
+        int startColumn = reader.getColumn();
+
+        int count = 1;
+        while (reader.peek() == '.') {
+            count++;
+            if (count > 3) {
+                errorHandler.reportError(
+                    ErrorType.INVALID_OPERATOR,
+                    "More than three consecutive periods are not allowed",
+                    startLine,
+                    startColumn
+                );
+                break;
+            }
+            symbol.append(reader.readNext());
+        }
+
+        // Determine the type of operator
+        if (count == 1) {
+            // Single period is a method operator
+            tokens.add(new Token(TokenType.METHOD_OP, symbol.toString(), startLine, startColumn));
+        } else if (count == 3) {
+            // Three periods is a loop operator
+            tokens.add(new Token(TokenType.LOOP_OP, symbol.toString(), startLine, startColumn));
+        } else if (count == 2) {
+            // Two periods is a loop operator
+            tokens.add(new Token(TokenType.LOOP_OP, symbol.toString(), startLine, startColumn));
+        }
+    }
+
+    /**
+     * Categorizes the given operator string into its corresponding token type.
+     * This method uses a switch expression to map operators to token types.
+     *
+     * @param op The operator string to categorize.
+     * @return The TokenType corresponding to the operator.
+     */
+    private TokenType categorizeOperator(String op) {
+        return switch (op) {
+            // Arithmetic operators
+            case "+", "-", "*", "/", "%" -> TokenType.ARITHMETIC_OP;
+            // Assignment operators
+            case "%=", "?=", "=", "+=", "-=", "*=", "/=" -> TokenType.ASSIGN_OP;
+            // Relational operators
+            case ">", "<", ">=", "<=", "==", "!=" -> TokenType.REL_OP;
+            // Logical operators
+            case "&&", "||", "!" -> TokenType.LOG_OP;
+            // Bitwise operators
+            case "&", "|", "~", "<<", ">>", ">>>" -> TokenType.BIT_OP;
+            // Method invocation operators
+            case ".", "::", "->" -> TokenType.METHOD_OP;
+            // Loop operators
+            case "...", ".." -> TokenType.LOOP_OP;
+            // Inheritance operators
+            case ":>", ":>>" -> TokenType.INHERIT_OP;
+            // Default case for unknown operators
+            default -> TokenType.UNKNOWN;
+        };
+    }
+
+    /**
+     * Handles number literals.
+     * It checks if the given string is a valid number, and if so, adds it to the tokens list.
+     * If the string is neither a valid integer nor a valid float, an error is reported to the error handler.
+     * 
+     * @param firstChar The initial character indicating a number ('0' - '9')
+     * @throws SourceReader.SourceReaderException If reading from the source encounters an error.
+     */
+    private void handleNumberLiteral(char firstChar) throws SourceReader.SourceReaderException {
+        StringBuilder number = new StringBuilder();
+        number.append(firstChar);
+        int startLine = reader.getLine();
+        int startColumn = reader.getColumn();
+
+        boolean isFloat = false;
+        boolean periodOperator = false;
+        
+        while (Character.isDigit(reader.peek()) || reader.peek() == '.' || Character.isLetter(reader.peek())) {
+            char nextChar = reader.peek();
             
-            // Read until the comment is terminated or EOF
-            while (!terminated && reader.peek() != SourceReader.EOF) {
-                char current = reader.readNext();
-                comment.append(current);
-                
-                // Check for comment termination sequence '*/'
-                if (current == '*' && reader.peek() == '/') {
-                    comment.append(reader.readNext());
-                    terminated = true;
+            // If we find a letter, treat the entire sequence as an invalid identifier
+            if (Character.isLetter(nextChar)) {
+                while (Character.isLetterOrDigit(reader.peek()) || reader.peek() == '_' || reader.peek() == '-') {
+                    number.append(reader.readNext());
                 }
-            }
-            
-            // Handle unterminated multi-line comment error
-            if (!terminated) {
-                errorHandler.handleUnterminatedComment(startLine, startColumn);
+                errorHandler.handleInvalidIdentifier(number.toString(), startLine, startColumn);
                 return;
             }
-        } else {
-            // If not a comment, treat it as an operator
-            handleOperator('/');
+            
+            if (nextChar == '.') {
+                if (isFloat) {
+                    periodOperator = true;
+                    number.deleteCharAt(number.length()-1);
+                    isFloat = false;    
+                    break;
+                }
+                isFloat = true;
+            }
+            number.append(reader.readNext());
+        }
+
+        if (number.toString().endsWith(".")) {
+            errorHandler.handleInvalidNumber(number.toString(), startLine, startColumn);
             return;
         }
 
-        // Add the comment as a token
-        tokens.add(new Token(TokenType.COMMENT, comment.toString(), startLine, startColumn));
+        if (reader.peek() == '|') {
+            number.append(reader.readNext());
+            if (Character.isDigit(reader.peek())) {
+                handleDateOrFraction(number);
+                return;
+            } else if (isOperatorSymbol(reader.peek())) {
+                handleOperator('|');
+                return;
+            }
+        }
+
+        TokenType type = isFloat ? TokenType.FLOAT_LIT : TokenType.INT_LIT;
+        tokens.add(new Token(type, number.toString(), startLine, startColumn));
+
+        if (periodOperator) {
+            handlePeriods('.');
+        }
+    }
+
+    /**
+     * Handles date and fraction literals.
+     * It checks if the given string is a valid date or fraction, and if so, adds it to the tokens list.
+     * If the string is neither a valid date nor a valid fraction, an error is reported to the error handler.
+     * 
+     * @param value The string to be checked for a valid date or fraction.
+     * @throws SourceReader.SourceReaderException If reading from the source encounters an error.
+     */
+    private void handleDateOrFraction(StringBuilder value) throws SourceReader.SourceReaderException {
+        int startLine = reader.getLine();
+        int startColumn = reader.getColumn();
+        int separatorCount = 1; // Already have one '|'
+        
+        // Read the string until we reach the end of the file or a non-digit character
+        while (reader.peek() != SourceReader.EOF) {
+            char current = reader.peek();
+            if (current == '|') {
+                // Count the number of '|' separators
+                separatorCount++;
+                if (separatorCount > 2) {
+                    // If we have more than 2 separators, it's an invalid date format
+                    errorHandler.handleInvalidDateFormat(value.toString(), startLine, startColumn);
+                    return;
+                }
+            } else if (!Character.isDigit(current)) {
+                // If we encounter a non-digit character, we're done
+                break;
+            }
+            value.append(reader.readNext());
+        }
+
+        // Check if the string is a valid date or fraction
+        if (separatorCount == 2) {
+            // Split the string by '|'
+            String[] parts = value.toString().split("\\|");
+            if (parts.length == 3 && isValidDate(parts[0], parts[1], parts[2])) {
+                // If the string is a valid date, add it to the tokens list
+                tokens.add(new Token(TokenType.DATE_LIT, value.toString(), startLine, startColumn));
+            } else {
+                // If the string is not a valid date, report an error
+                errorHandler.handleInvalidDateFormat(value.toString(), startLine, startColumn);
+            }
+        } else {
+            // Split the string by '|'
+            String[] parts = value.toString().split("\\|");
+            if (parts.length == 2 && isValidFraction(parts[0], parts[1])) {
+                // If the string is a valid fraction, add it to the tokens list
+                tokens.add(new Token(TokenType.FRAC_LIT, value.toString(), startLine, startColumn));
+            } else {
+                // If the string is not a valid fraction, report an error
+                errorHandler.reportError(
+                    ErrorType.INVALID_FRACTION_FORMAT,
+                    "Invalid fraction format: " + value,
+                    startLine,
+                    startColumn,
+                    "Fractions should be in the format numerator|denominator"
+                );
+            }
+        }
     }
 
     /**
@@ -889,6 +839,56 @@ public class Lexer {
                 "Use format $(real,imag)"
             );
         }
+    }
+
+    /**
+     * Handles both single-line and multi-line comments.
+     * Adds the comment as a token if properly terminated.
+     * 
+     * @param firstChar The initial character indicating a comment ('/')
+     * @throws SourceReader.SourceReaderException If reading from the source encounters an error
+     */
+    private void handleComment(char firstChar) throws SourceReader.SourceReaderException {
+        StringBuilder comment = new StringBuilder();
+        comment.append(firstChar);
+        int startLine = reader.getLine();
+        int startColumn = reader.getColumn();
+
+        // Check for single-line comment
+        if (reader.peek() == '/') { 
+            // Read until the end of the line or EOF
+            while (reader.peek() != '\n' && reader.peek() != SourceReader.EOF) {
+                comment.append(reader.readNext());
+            }
+        // Check for multi-line comment
+        } else if (reader.peek() == '*') { 
+            boolean terminated = false;
+            
+            // Read until the comment is terminated or EOF
+            while (!terminated && reader.peek() != SourceReader.EOF) {
+                char current = reader.readNext();
+                comment.append(current);
+                
+                // Check for comment termination sequence '*/'
+                if (current == '*' && reader.peek() == '/') {
+                    comment.append(reader.readNext());
+                    terminated = true;
+                }
+            }
+            
+            // Handle unterminated multi-line comment error
+            if (!terminated) {
+                errorHandler.handleUnterminatedComment(startLine, startColumn);
+                return;
+            }
+        } else {
+            // If not a comment, treat it as an operator
+            handleOperator('/');
+            return;
+        }
+
+        // Add the comment as a token
+        tokens.add(new Token(TokenType.COMMENT, comment.toString(), startLine, startColumn));
     }
 
     /**

@@ -1,29 +1,20 @@
 TOKEN TYPE           LEXEME          LINE       COLUMN    
-RESERVED_WORD        main            Line: 1   Column: 4  
-WHITESPACE                           Line: 1   Column: 5  
+RESERVED             main            Line: 1   Column: 1  
 DELIM                (               Line: 1   Column: 6  
-IDENTIFIER           args            Line: 1   Column: 10 
+IDENTIFIER           args            Line: 1   Column: 7  
 DELIM                )               Line: 1   Column: 11 
-WHITESPACE                           Line: 1   Column: 12 
 DELIM                {               Line: 1   Column: 13 
-WHITESPACE           \n              Line: 1   Column: 14 
-RESERVED_WORD        str             Line: 2   Column: 7  
-WHITESPACE                           Line: 2   Column: 8  
-IDENTIFIER           name            Line: 2   Column: 12 
-WHITESPACE                           Line: 2   Column: 13 
+RESERVED             str             Line: 2   Column: 5  
+IDENTIFIER           name            Line: 2   Column: 9  
 ASSIGN_OP            =               Line: 2   Column: 14 
-WHITESPACE                           Line: 2   Column: 15 
-RESERVED_WORD        STRICT          Line: 2   Column: 21 
-WHITESPACE                           Line: 2   Column: 22 
-KEYWORD              Input           Line: 2   Column: 27 
-METHOD_OP            ::              Line: 2   Column: 29 
-KEYWORD              get             Line: 2   Column: 32 
+RESERVED             STRICT          Line: 2   Column: 16 
+KEYWORD              Input           Line: 2   Column: 23 
+METHOD_OP            ::              Line: 2   Column: 28 
+KEYWORD              get             Line: 2   Column: 30 
 DELIM                (               Line: 2   Column: 33 
 STR_DELIM            "               Line: 2   Column: 34 
 STR_DELIM            "               Line: 2   Column: 52 
-STR_LIT              Enter your name:  Line: 2   Column: 52 
+STR_LIT              Enter your name:  Line: 2   Column: 34 
 DELIM                )               Line: 2   Column: 53 
 PUNC_DELIM           ;               Line: 2   Column: 54 
-WHITESPACE           \n    \n        Line: 2   Column: 55 
-DELIM                }               Line: 4   Column: 1  
-EOF                                  Line: 4   Column: 1  
+DELIM                }               Line: 3   Column: 1  
