@@ -23,11 +23,13 @@ public class ErrorHandler {
      */
     public enum ErrorType {
         INVALID_CHARACTER,
+        INVALID_DELIMITER,
         UNTERMINATED_STRING,
         UNTERMINATED_COMMENT,
         INVALID_NUMBER_FORMAT,
         INVALID_ESCAPE_SEQUENCE,
         INVALID_IDENTIFIER,
+        INVALID_STRING,
         INVALID_OPERATOR,
         UNKNOWN_TOKEN,
         INVALID_COMPLEX_LITERAL,
@@ -216,6 +218,16 @@ public class ErrorHandler {
             line,
             column,
             "Date literals should be in the format dd|mm|yyyy"
+        );
+    }
+
+    public void handleInvalidString(String str, int line, int column) {
+        reportError(
+            ErrorType.INVALID_STRING,
+            "Invalid string format: " + str,
+            line,
+            column,
+            "Check string format and escape sequences"
         );
     }
 

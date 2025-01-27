@@ -16,13 +16,11 @@ import util.SourceReader.SourceReaderException;
 public class Lexer {
     private final SourceReader reader;
     private final List<Token> tokens;
-    private final SpecialWords specialWords;
     private final ErrorHandler errorHandler;
 
     public Lexer(SourceReader reader) {
         this.reader = reader;
         this.tokens = new ArrayList<>();
-        this.specialWords = new SpecialWords();
         this.errorHandler = new ErrorHandler();
         this.errorHandler.setCurrentFile(reader.getFilePath());
     }
@@ -292,12 +290,22 @@ public class Lexer {
     private void handleDelimiterOrBracket(char currentChar) {
         int line = reader.getLine();
         int startColumn = reader.getColumn();
-
-        // If the character is a delimiter or bracket, add it to the token list
-        if ("[](){}".indexOf(currentChar) != -1) {
-            tokens.add(new Token(TokenType.DELIM, String.valueOf(currentChar), line, startColumn));
-        } else if (",;?@".indexOf(currentChar) != -1) {
-            tokens.add(new Token(TokenType.PUNC_DELIM, String.valueOf(currentChar), line, startColumn));
+        String delimiter = String.valueOf(currentChar);
+    
+        if (Patterns.matchDelimiterOrBracket(delimiter)) {
+            // Check if it's a group bracket or punctuation delimiter
+            if ("[](){}".indexOf(currentChar) != -1) {
+                tokens.add(new Token(TokenType.DELIM, delimiter, line, startColumn));
+            } else if (",;?@".indexOf(currentChar) != -1) {
+                tokens.add(new Token(TokenType.PUNC_DELIM, delimiter, line, startColumn));
+            }
+        } else {
+            errorHandler.reportError(
+                ErrorType.INVALID_DELIMITER,
+                "Invalid delimiter: " + delimiter,
+                line,
+                startColumn
+            );
         }
     }
 
@@ -350,10 +358,16 @@ public class Lexer {
             }
         }
 
-        // Add the closing quote to the token list
-        tokens.add(new Token(TokenType.STR_DELIM, String.valueOf(quote), reader.getLine(), reader.getColumn()));
-        // Add the string literal to the token list
-        tokens.add(new Token(TokenType.STR_LIT, stringLiteral.toString(), startLine, startColumn));
+        // Validate the complete string literal using Pattern
+        String completeString = quote + stringLiteral.toString() + quote;
+        if (Patterns.matchStringLiteral(completeString)) {
+            // Add the closing quote to the token list
+            tokens.add(new Token(TokenType.STR_DELIM, String.valueOf(quote), reader.getLine(), reader.getColumn()));
+            // Add the string literal to the token list
+            tokens.add(new Token(TokenType.STR_LIT, stringLiteral.toString(), startLine, startColumn));
+        } else {
+            errorHandler.handleInvalidString(completeString, startLine, startColumn);
+        }
     }
 
     /**
@@ -392,15 +406,15 @@ public class Lexer {
 
         String identifierStr = identifier.toString();
         // Validate the identifier
-        if (!isValidIdentifier(identifierStr)) {
+        if (!Patterns.matchIdentifier(identifierStr)) {
             errorHandler.handleInvalidIdentifier(identifierStr, startLine, startColumn);
             return;
         }
 
         // Categorize the identifier
-        if (specialWords.isKeyword(identifierStr)) {
+        if (Patterns.isKeyword(identifierStr)) {
             tokens.add(new Token(TokenType.KEYWORD, identifierStr, startLine, startColumn));
-        } else if (specialWords.isReservedWord(identifierStr)) {
+        } else if (Patterns.isReservedWord(identifierStr)) {
             tokens.add(new Token(TokenType.RESERVED, identifierStr, startLine, startColumn));
         } else if (identifierStr.indexOf('-') == -1) {
             if (identifierStr.equals("true") || identifierStr.equals("false")) {
@@ -666,14 +680,14 @@ public class Lexer {
         number.append(firstChar);
         int startLine = reader.getLine();
         int startColumn = reader.getColumn();
-
+    
         boolean isFloat = false;
         boolean periodOperator = false;
         
         while (Character.isDigit(reader.peek()) || reader.peek() == '.' || Character.isLetter(reader.peek())) {
             char nextChar = reader.peek();
             
-            // If we find a letter, treat the entire sequence as an invalid identifier
+            // Handle invalid identifier case
             if (Character.isLetter(nextChar)) {
                 while (Character.isLetterOrDigit(reader.peek()) || reader.peek() == '_' || reader.peek() == '-') {
                     number.append(reader.readNext());
@@ -685,20 +699,14 @@ public class Lexer {
             if (nextChar == '.') {
                 if (isFloat) {
                     periodOperator = true;
-                    number.deleteCharAt(number.length()-1);
-                    isFloat = false;    
                     break;
                 }
                 isFloat = true;
             }
             number.append(reader.readNext());
         }
-
-        if (number.toString().endsWith(".")) {
-            errorHandler.handleInvalidNumber(number.toString(), startLine, startColumn);
-            return;
-        }
-
+    
+        // Check for fraction or date format
         if (reader.peek() == '|') {
             number.append(reader.readNext());
             if (Character.isDigit(reader.peek())) {
@@ -709,10 +717,25 @@ public class Lexer {
                 return;
             }
         }
-
-        TokenType type = isFloat ? TokenType.FLOAT_LIT : TokenType.INT_LIT;
-        tokens.add(new Token(type, number.toString(), startLine, startColumn));
-
+    
+        // Validate number format using patterns
+        String numberStr = number.toString();
+        if (isFloat) {
+            if (Patterns.matchFloat(numberStr)) {
+                tokens.add(new Token(TokenType.FLOAT_LIT, numberStr, startLine, startColumn));
+            } else {
+                errorHandler.handleInvalidNumber(numberStr, startLine, startColumn);
+                return;
+            }
+        } else {
+            if (Patterns.matchInteger(numberStr)) {
+                tokens.add(new Token(TokenType.INT_LIT, numberStr, startLine, startColumn));
+            } else {
+                errorHandler.handleInvalidNumber(numberStr, startLine, startColumn);
+                return;
+            }
+        }
+    
         if (periodOperator) {
             handlePeriods('.');
         }
@@ -853,15 +876,26 @@ public class Lexer {
         comment.append(firstChar);
         int startLine = reader.getLine();
         int startColumn = reader.getColumn();
-
+    
         // Check for single-line comment
         if (reader.peek() == '/') { 
+            comment.append(reader.readNext());  // add the second '/'
+            
             // Read until the end of the line or EOF
             while (reader.peek() != '\n' && reader.peek() != SourceReader.EOF) {
                 comment.append(reader.readNext());
             }
+    
+            // Validate single-line comment format
+            if (Patterns.isSingleLineComment(comment.toString())) {
+                tokens.add(new Token(TokenType.COMMENT, comment.toString(), startLine, startColumn));
+            } else {
+                handleOperator('/');
+            }
+        }
         // Check for multi-line comment
-        } else if (reader.peek() == '*') { 
+        else if (reader.peek() == '*') { 
+            comment.append(reader.readNext());  // add the initial '*'
             boolean terminated = false;
             
             // Read until the comment is terminated or EOF
@@ -873,22 +907,19 @@ public class Lexer {
                 if (current == '*' && reader.peek() == '/') {
                     comment.append(reader.readNext());
                     terminated = true;
+                    tokens.add(new Token(TokenType.COMMENT, comment.toString(), startLine, startColumn));
                 }
             }
             
             // Handle unterminated multi-line comment error
             if (!terminated) {
                 errorHandler.handleUnterminatedComment(startLine, startColumn);
-                return;
             }
-        } else {
-            // If not a comment, treat it as an operator
+        } 
+        // If not a comment, treat as division operator
+        else {
             handleOperator('/');
-            return;
         }
-
-        // Add the comment as a token
-        tokens.add(new Token(TokenType.COMMENT, comment.toString(), startLine, startColumn));
     }
 
     /**

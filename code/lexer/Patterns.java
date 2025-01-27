@@ -28,13 +28,16 @@ public class Patterns {
     private static final String UNARY_OP_REGEX = "^(\\+|-|\\+\\+|--|\\*\\*|!)$";
 
     // Ternary Operator: ? :
-    private static final String TERNARY_OP_REGEX = "^\\?.*:$";
+    private static final String TERNARY_OP_REGEX = "^\\?\\s*:\\s*$";
 
     // Method Reference Operators: ., ::, ->
     private static final String METHOD_OP_REGEX = "^(\\.|::|->)$";
 
     // Inherit Operators: :>, :>>
-    private static final String INHERIT_OP_REGEX = "^(\\:>|\\:\\:\\>)$";
+    private static final String INHERIT_OP_REGEX = "^(\\:>|\\:>>)$";
+
+    // Loop Operators: .., ...
+    private static final String LOOP_OP_REGEX = "^(\\.{2,3})$";
 
     // Keywords
     private static final String KEYWORDS_REGEX = "^(break|case|day|default|do|else|exit|exit when|for|get|if|in|" +
@@ -47,25 +50,27 @@ public class Patterns {
                                                         "STRICT|strictfp|str|today|toMixed|transient|validate|volatile)$";
 
     // Single-Line Comments: Starts with //
-    private static final String SINGLE_LINE_COMMENT_REGEX = "^//.*$";
-
-    // Multi-Line Comments: Starts with /* and ends with */
-    private static final String MULTI_LINE_COMMENT_REGEX = "^/\\*.*?\\*/$";
+    private static final String SINGLE_LINE_COMMENT_REGEX = "^//[^\\n]*$";
 
     // Delimiters and Brackets: (), {}, [], ,, ;, :, @, .
     private static final String DELIMITERS_REGEX = "^(\\(|\\)|\\{|\\}|\\[|\\]|,|;|:|@|\\.)$";
 
     // String Literals: Starts and ends with "
-    private static final String STRING_LITERAL_REGEX = "^\".*\"$";
+    private static final String STRING_LITERAL_REGEX = "^\"([^\"\\\\]|\\\\.)*\"$";
+
+    // Character Literals: Starts and ends with '
+    private static final String CHARACTER_LITERAL_REGEX = "^'([^'\\\\]|\\\\.)*'$";
 
     // Object Delimiters: Starts and ends with <>
-    private static final String OBJECT_DELIMITER_REGEX = "^<.*>$";
+    private static final String OBJECT_DELIMITER_REGEX = "^<[a-zA-Z][a-zA-Z0-9_]*>$";
 
     // Number Literals: Integers and Floats
-    private static final String NUMBER_REGEX = "^\\d+(\\.\\d+)?$";
+    private static final String INTEGER_REGEX = "^[-+]?\\d+$";
+    private static final String FLOAT_REGEX = "^[-+]?\\d*\\.\\d+([eE][-+]?\\d+)?$";
 
     // Complex Literals: $(real,imag)
-    private static final String COMPLEX_LITERAL_REGEX = "^\\$\\(\\d+(\\.\\d+)?,\\d+(\\.\\d+)?\\)$";
+    private static final String COMPLEX_LITERAL_REGEX = 
+                    "^\\$\\(\\s*[-+]?\\d*\\.?\\d+\\s*,\\s*[-+]?\\d*\\.?\\d+\\s*\\)$";
 
     // Fraction Literals: [numerator|denominator]
     private static final String FRACTION_LITERAL_REGEX = "^\\[\\d+\\|\\d+]$";
@@ -114,6 +119,10 @@ public class Patterns {
         return input != null && input.matches(INHERIT_OP_REGEX);
     }
 
+    public static boolean matchLoopOp(String input) {
+        return input != null && input.matches(LOOP_OP_REGEX);
+    }
+
     public static boolean isKeyword(String input) {
         return input != null && input.matches(KEYWORDS_REGEX);
     }
@@ -126,10 +135,6 @@ public class Patterns {
         return input != null && input.matches(SINGLE_LINE_COMMENT_REGEX);
     }
 
-    public static boolean isMultiLineComment(String input) {
-        return input != null && input.matches(MULTI_LINE_COMMENT_REGEX);
-    }
-
     public static boolean matchDelimiterOrBracket(String input) {
         return input != null && input.matches(DELIMITERS_REGEX);
     }
@@ -138,12 +143,20 @@ public class Patterns {
         return input != null && input.matches(STRING_LITERAL_REGEX);
     }
 
+    public static boolean matchCharacterLiteral(String input) {
+        return input != null && input.matches(CHARACTER_LITERAL_REGEX);
+    }
+
     public static boolean matchObjectDelimiter(String input) {
         return input != null && input.matches(OBJECT_DELIMITER_REGEX);
     }
 
-    public static boolean matchNumber(String input) {
-        return input != null && input.matches(NUMBER_REGEX);
+    public static boolean matchInteger(String input) {
+        return input != null && input.matches(INTEGER_REGEX);
+    }
+    
+    public static boolean matchFloat(String input) {
+        return input != null && input.matches(FLOAT_REGEX);
     }
 
     public static boolean matchComplexLiteral(String input) {
