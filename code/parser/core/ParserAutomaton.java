@@ -90,7 +90,7 @@ public class ParserAutomaton {
             return false; // Invalid rule
         }
 
-        Object firstSymbol = rule.getRighSide().get(0);
+        Object firstSymbol = rule.getRightSide().get(0);
         if (firstSymbol instanceof TokenType) {
             return token.getType() == firstSymbol;
         } else if (firstSymbol instanceof NonTerminal) {
