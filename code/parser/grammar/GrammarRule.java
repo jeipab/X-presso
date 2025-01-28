@@ -5,8 +5,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import lexer.TokenType;
-import parser.grammar.Terminal;
-
 
 // Represents a production rule in the grammar
 public class GrammarRule {
@@ -16,6 +14,16 @@ public class GrammarRule {
     public GrammarRule(NonTerminal leftSide, List<Symbol> rightSide) {
         this.leftSide = leftSide;
         this.rightSide = new ArrayList<>(rightSide);
+    }
+
+    // Getter for left-hand side
+    public NonTerminal getLeftSide() {
+        return leftSide;
+    }
+
+    // Getter for right-hand side (returns an unmodifiable list for safety)
+    public List<Symbol> getRightSide() {
+        return new ArrayList<>(rightSide);
     }
 
     // Checks if the rule can produce an empty string (nullable)
