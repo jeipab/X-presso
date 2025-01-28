@@ -27,62 +27,70 @@ public class ParserAutomaton {
     }
 
     // Drive the parsing process
-    public void parse(List<Token> tokens) {
-        for (Token token : tokens) {
-            while (true) {
-                if (stateStack.isEmpty()) {
-                    throw new RuntimeException("Unexpected end of input.");
-                }
+    public boolean parse(List<Token> tokens) {
+        try {
+            for (Token token : tokens) {
+                while (true) {
+                    if (stateStack.isEmpty()) {
+                        throw new RuntimeException("Unexpected end of input.");
+                    }
 
-                State currentState = stateStack.peek();
-                NonTerminal currentNonTerminal = currentState.getSymbol();
+                    State currentState = stateStack.peek();
+                    NonTerminal currentNonTerminal = currentState.getSymbol();
 
-                // Get the production rules for the current non-terminal
-                List<GrammarRule> rules = NonTerminal.getProductions(currentNonTerminal);
+                    // Get the production rules for the current non-terminal
+                    List<GrammarRule> rules = NonTerminal.getProductions(currentNonTerminal);
 
-                boolean matched = false;
-                for (GrammarRule rule : rules) {
-                    if (ruleMatchesToken(rule, token)) {
-                        applyRule(rule);
-                        matched = true;
-                        break;
+                    boolean matched = false;
+                    for (GrammarRule rule : rules) {
+                        if (ruleMatchesToken(rule, token)) {
+                            applyRule(rule);
+                            matched = true;
+                            break;
+                        }
+                    }
+
+                    if (matched) {
+                        break; // Proceed to the next token
+                    } else {
+                        handleError(token); // Handle syntax errors
+                        return false;
                     }
                 }
-
-                if (matched) {
-                    break; // Proceed to the next token
-                } else {
-                    handleError(token); // Handle syntax errors
-                    return;
-                }
             }
-        }
 
-        // Final validation
-        if (!stateStack.isEmpty()) {
-            throw new RuntimeException("Parsing incomplete: stack not empty.");
+            // Final validation
+            if (!stateStack.isEmpty()) {
+                throw new RuntimeException("Parsing incomplete: stack not empty.");
+            }
+
+            return true; // Parsing succeeded
+
+        } catch (RuntimeException e) {
+            System.err.println(e.getMessage());
+            return false; // Parsing failed
         }
     }
 
     // Apply a grammar rule (reduce action)
     private void applyRule(GrammarRule rule) {
         // Pop states for the rule's right-hand side
-        for (int i = 0; i < rule.getRightHandSide().size(); i++) {
+        for (int i = 0; i < rule.getRightSide().size(); i++) {
             popState();
         }
 
         // Push a new state for the rule's left-hand side
-        pushState(rule.getLeftHandSide());
+        pushState(rule.getLeftSide());
     }
 
     // Check if a grammar rule matches a token
     private boolean ruleMatchesToken(GrammarRule rule, Token token) {
         // The first symbol on the right-hand side of the rule should match the token type
-        if (rule.getRightHandSide().isEmpty()) {
+        if (rule.getRightSide().isEmpty()) {
             return false; // Invalid rule
         }
 
-        Object firstSymbol = rule.getRightHandSide().get(0);
+        Object firstSymbol = rule.getRighSide().get(0);
         if (firstSymbol instanceof TokenType) {
             return token.getType() == firstSymbol;
         } else if (firstSymbol instanceof NonTerminal) {
