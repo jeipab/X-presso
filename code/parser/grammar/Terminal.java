@@ -1,7 +1,7 @@
 package parser.grammar;
 import lexer.TokenType;
 
-public class Terminal implements Symbol {
+class Terminal implements Symbol {
     private TokenType tokenType;
 
     public Terminal(TokenType tokenType) {
@@ -14,6 +14,11 @@ public class Terminal implements Symbol {
 
     @Override
     public String getName() {
-        return tokenType.name();
+        return tokenType.toString();
+    }
+
+    @Override
+    public String toString() {
+        return tokenType.toString();
     }
 }
