@@ -1,0 +1,4 @@
+TOKEN TYPE           LEXEME          LINE       COLUMN    
+IDENTIFIER           x               Line: 1   Column: 1  
+ARITHMETIC_OP        -               Line: 1   Column: 3  
+PUNC_DELIM           ;               Line: 1   Column: 4  

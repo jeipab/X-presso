@@ -1,10 +1,14 @@
 package lexer;
 
+import language.SpecialWords;
+
 /**
  * Patterns class containing regular expressions and matching methods
  * for various components of the S-presso programming language.
  */
 public class Patterns {
+
+    private static final SpecialWords specialWords = new SpecialWords();
 
     // Identifiers: Starts with a letter, followed by letters, digits, or underscores
     private static final String IDENTIFIER_REGEX = "^[a-zA-Z][a-zA-Z0-9_]*$";
@@ -19,35 +23,29 @@ public class Patterns {
     private static final String LOGICAL_OP_REGEX = "^(\\|\\||&&|!)$";
 
     // Relational Operators: ==, !=, <, >, <=, >=
-    private static final String RELATIONAL_OP_REGEX = "^(==|!=|<|>|<=|>=)$";
+    private static final String RELATIONAL_OP_REGEX = "^(==|!=|<=|>=|<|>)$";
 
-    // Bitwise Operators: &, |, ^, ~, <<, >>, >>>
-    private static final String BITWISE_OP_REGEX = "^(\\&|\\||\\^|~|<<|>>|>>>)$";
+    // Bitwise Operators: &, |, ^|, ~, <<, >>, >>>
+    private static final String BITWISE_OP_REGEX = "^(>>>|>>|<<|\\^\\||\\&|\\||\\^|~)$";
 
     // Unary Operators: +, -, ++, --, **, !
-    private static final String UNARY_OP_REGEX = "^(\\+|-|\\+\\+|--|\\*\\*|!)$";
+    private static final String UNARY_OP_REGEX = "^(\\+|-|\\+\\+|\\-\\-|\\*\\*|!)$";
 
     // Ternary Operator: ? :
     private static final String TERNARY_OP_REGEX = "^\\?\\s*:\\s*$";
 
     // Method Reference Operators: ., ::, ->
-    private static final String METHOD_OP_REGEX = "^(\\.|::|->)$";
+    private static final String METHOD_OP_REGEX = "^(->|::|\\.)$";
 
     // Inherit Operators: :>, :>>
     private static final String INHERIT_OP_REGEX = "^(\\:>|\\:>>)$";
 
     // Loop Operators: .., ...
-    private static final String LOOP_OP_REGEX = "^(\\.{2,3})$";
+    private static final String LOOP_OP_REGEX = "^(\\.\\.\\.?|\\.\\.)$";
 
-    // Keywords
-    private static final String KEYWORDS_REGEX = "^(break|case|day|default|do|else|exit|exit when|for|get|if|in|" +
-                                                    "Input|month|Output|print|switch|switch-fall|while|where type|year)$";
-
-    // Reserved Words
-    private static final String RESERVED_WORDS_REGEX = "^(abstract|after|before|bool|byte|char|class|Complex|Date|double|" +
-                                                        "exclude|export_as|Frac|filter_by|final|float|inline_query|inspect|int|" +
-                                                        "long|main|modify|native|private|protected|public|Rational|short|static|" +
-                                                        "STRICT|strictfp|str|today|toMixed|transient|validate|volatile)$";
+    // Use SpecialWords to dynamically generate regex for keywords and reserved words
+    private static final String KEYWORDS_REGEX = "^(?:" + specialWords.getKeywordsRegex() + ")$";
+    private static final String RESERVED_WORDS_REGEX = "^(?:" + specialWords.getReservedWordsRegex() + ")$";
 
     // Single-Line Comments: Starts with //
     private static final String SINGLE_LINE_COMMENT_REGEX = "^//[^\\n]*$";
@@ -73,7 +71,7 @@ public class Patterns {
                     "^\\$\\(\\s*[-+]?\\d*\\.?\\d+\\s*,\\s*[-+]?\\d*\\.?\\d+\\s*\\)$";
 
     // Fraction Literals: [numerator|denominator]
-    private static final String FRACTION_LITERAL_REGEX = "^\\[\\d+\\|\\d+]$";
+    private static final String FRACTION_LITERAL_REGEX = "^\\[\\d+\\|[1-9]\\d*]$";
 
     // Date Literals: [YYYY|MM|DD]
     private static final String DATE_LITERAL_REGEX = "^\\[\\d{4}\\|\\d{2}\\|\\d{2}]$";

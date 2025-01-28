@@ -3,7 +3,6 @@ package lexer;
 import java.util.ArrayList;
 import java.util.List;
 
-import language.SpecialWords;
 import util.ErrorHandler;
 import util.SourceReader;
 import util.ErrorHandler.ErrorType;
@@ -81,16 +80,19 @@ public class Lexer {
                         handleObjectDelimiterOrOperator(currentChar);
                     }
                     // Handle operator symbols
-                    else if (isOperatorSymbol(currentChar)) {
+                    else if (isOperatorSymbol(currentChar) || currentChar == '<') {
                         handleOperator(currentChar);
                     }
                     // Handle delimiter or bracket characters
                     else if (isDelimiterOrBracket(currentChar)) {
                         handleDelimiterOrBracket(currentChar);
                     }
+                    // Handle character literals
+                    else if (currentChar == '\'') {
+                        handleCharLiteral(); 
                     // Handle string literals
-                    else if (currentChar == '"' || currentChar == '\'') {
-                        handleStringLiteral(currentChar);
+                    } else if (currentChar == '"') {
+                        handleStringLiteral(); 
                     }
                     // Handle unknown characters
                     else {
@@ -125,7 +127,9 @@ public class Lexer {
 
     // Helper methods for character classification
     private boolean isOperatorSymbol(char c) {
-        return "+-*=%?<>!&|^~.:".indexOf(c) != -1;
+        String operatorChars = "+-*/%=?<>!&|^~.:-";
+        boolean result = operatorChars.indexOf(c) != -1;
+        return result;
     }
 
     private boolean isDelimiterOrBracket(char c) {
@@ -150,110 +154,24 @@ public class Lexer {
         Token lastToken = tokens.get(tokens.size() - 1);
         while (lastToken.getType() == TokenType.WHITESPACE) {
             tokens.remove(tokens.size() - 1);
-            
             if (tokens.isEmpty()) return true;
             lastToken = tokens.get(tokens.size() - 1);
         }
     
         TokenType type = lastToken.getType();
-        // Check if the last token is a delimiter, punctuation delimiter, arithmetic operator, assignment operator, relational operator, logical operator, method operator, or inherit operator
-        return type == TokenType.DELIM 
-            || type == TokenType.PUNC_DELIM 
-            || type == TokenType.ARITHMETIC_OP 
-            || type == TokenType.ASSIGN_OP
-            || type == TokenType.REL_OP 
-            || type == TokenType.LOG_OP
-            || type == TokenType.METHOD_OP 
-            || type == TokenType.INHERIT_OP;
-    }
-
-    /**
-     * Checks if the given two-character string is a valid two-character operator.
-     * This method checks if the string matches any of the two-character operators
-     * in the language. It is used to determine if a two-character sequence is a
-     * valid operator or not.
-     *
-     * @param op The two-character string to check.
-     * @return True if the string is a valid two-character operator, false otherwise.
-     */
-    private boolean isValidTwoCharOperator(String op) {
-        // Check if the operator is any of the two-character operators
-        return op.equals("==") || op.equals("!=") || op.equals("<=") || op.equals(">=")
-            || op.equals("&&") || op.equals("||") || op.equals("<<") || op.equals(">>")
-            || op.equals("%=") || op.equals("?=") || op.equals("+=") || op.equals("-=")
-            || op.equals("*=") || op.equals("/=") || op.equals("::") || op.equals("->")
-            || op.equals("..") || op.equals(":>") || op.equals(":<");
-    }
-
-    /**
-     * Validates if a given string is a valid identifier.
-     * A valid identifier starts with a letter or underscore and may contain letters, digits, underscores, and hyphens.
-     *
-     * @param identifier The string to validate as an identifier.
-     * @return true if the string is a valid identifier, false otherwise.
-     */
-    private boolean isValidIdentifier(String identifier) {
-        // Check for empty string
-        if (identifier.isEmpty()) {
+        
+        // If last token was a number, identifier, or closing delimiter,
+        // this is NOT a unary context (it's arithmetic)
+        if (type == TokenType.INT_LIT || 
+            type == TokenType.FLOAT_LIT || 
+            type == TokenType.IDENTIFIER ||
+            lastToken.getLexeme().equals(")") ||
+            lastToken.getLexeme().equals("]")) {
             return false;
         }
-        
-        // Check first character - must be letter or underscore, not digit
-        char firstChar = identifier.charAt(0);
-        if (Character.isDigit(firstChar)) {
-            return false;
-        }
-        
-        // Check each character in the identifier
-        for (char c : identifier.toCharArray()) {
-            // Identifier characters must be letters, digits, underscores, or hyphens
-            if (!Character.isLetterOrDigit(c) && c != '_' && c != '-') {
-                return false;
-            }
-        }
-        
-        // All checks passed, the identifier is valid
+    
+        // Otherwise it's a unary context
         return true;
-    }
-
-    /**
-     * Checks if a given date is valid.
-     * A valid date is in the range of 1-31 for the day, 1-12 for the month, and 0 for the year.
-     * @param day the day of the date
-     * @param month the month of the date
-     * @param year the year of the date
-     * @return true if the date is valid, false otherwise
-     */
-    private boolean isValidDate(String day, String month, String year) {
-        try {
-            int d = Integer.parseInt(day);
-            int m = Integer.parseInt(month);
-            int y = Integer.parseInt(year);
-            
-            // Check day is in the range of 1-31
-            // Check month is in the range of 1-12
-            // Check year is 0
-            return d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 0;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
-
-    /**
-     * Checks if a given fraction is valid.
-     * A valid fraction is in the range of Integer.MAX_VALUE for the numerator and non-zero for the denominator.
-     * @param numerator the numerator of the fraction
-     * @param denominator the denominator of the fraction
-     * @return true if the fraction is valid, false otherwise
-     */
-    private boolean isValidFraction(String numerator, String denominator) {
-        try {
-            int num = Integer.parseInt(numerator);
-            int den = Integer.parseInt(denominator);
-            return den != 0 && num <= Integer.MAX_VALUE;
-        } catch (NumberFormatException e) {
-            return false;
-        }
     }
 
     /**
@@ -287,27 +205,32 @@ public class Lexer {
      * 
      * @param currentChar The delimiter or bracket character to be handled.
      */
-    private void handleDelimiterOrBracket(char currentChar) {
+    private void handleDelimiterOrBracket(char currentChar) throws SourceReader.SourceReaderException {
         int line = reader.getLine();
         int startColumn = reader.getColumn();
-        String delimiter = String.valueOf(currentChar);
     
-        if (Patterns.matchDelimiterOrBracket(delimiter)) {
-            // Check if it's a group bracket or punctuation delimiter
-            if ("[](){}".indexOf(currentChar) != -1) {
-                tokens.add(new Token(TokenType.DELIM, delimiter, line, startColumn));
-            } else if (",;?@".indexOf(currentChar) != -1) {
-                tokens.add(new Token(TokenType.PUNC_DELIM, delimiter, line, startColumn));
-            }
+        if (currentChar == '[') {
+            // Start parsing a potential date or fraction literal
+            StringBuilder literal = new StringBuilder();
+            literal.append(currentChar);
+            handleDateOrFraction(literal);
+        } else if (currentChar == ']') {
+            errorHandler.reportError(
+                ErrorType.MISMATCHED_DELIMITERS,
+                "Unexpected closing bracket ']'",
+                line, startColumn
+            );
+        } else if (Patterns.matchDelimiterOrBracket(String.valueOf(currentChar))) {
+            // Handle other delimiters as individual tokens
+            tokens.add(new Token(TokenType.DELIM, String.valueOf(currentChar), line, startColumn));
         } else {
             errorHandler.reportError(
                 ErrorType.INVALID_DELIMITER,
-                "Invalid delimiter: " + delimiter,
-                line,
-                startColumn
+                "Invalid delimiter: " + currentChar,
+                line, startColumn
             );
         }
-    }
+    }    
 
     /**
      * Handles string literals in the source code.
@@ -318,57 +241,93 @@ public class Lexer {
      * @param quote The quote that starts the string literal.
      * @throws SourceReader.SourceReaderException If reading from the source encounters an error.
      */
-    private void handleStringLiteral(char quote) throws SourceReader.SourceReaderException {
-        StringBuilder stringLiteral = new StringBuilder();
+    private void handleStringLiteral() throws SourceReader.SourceReaderException {
         int startLine = reader.getLine();
         int startColumn = reader.getColumn();
-
-        // Add the opening quote to the token list
-        tokens.add(new Token(TokenType.STR_DELIM, String.valueOf(quote), startLine, startColumn));
-
+    
+        // Add the opening double quote as a token
+        tokens.add(new Token(TokenType.STR_DELIM, "\"", startLine, startColumn));
+    
+        StringBuilder stringLiteral = new StringBuilder();
         char currentChar;
         boolean terminated = false;
-        while ((currentChar = reader.readNext()) != quote && !terminated) {
-            if (currentChar == SourceReader.EOF) {
-                // If the string is not properly terminated, report an error
-                errorHandler.handleUnterminatedString(startLine, startColumn);
-                return;
-            }
-
+    
+        while ((currentChar = reader.readNext()) != '"' && currentChar != SourceReader.EOF) {
             if (currentChar == '\\') {
                 // Handle escape sequences
-                char nextChar = reader.peek();
-                switch (nextChar) {
-                    case 'n', 't', 'r', '"', '\\' -> {
-                        // Add the escape sequence to the string literal
-                        stringLiteral.append(currentChar).append(reader.readNext());
-                        // Add the escape sequence to the token list
-                        tokens.add(new Token(TokenType.ESCAPE_CHAR, "\\" + nextChar, reader.getLine(), reader.getColumn()));
-                    }
-                    default -> {
-                        // Report an error if the escape sequence is invalid
-                        errorHandler.handleInvalidEscapeSequence("\\" + nextChar, reader.getLine(), reader.getColumn());
-                        // Add the invalid escape sequence to the string literal
-                        stringLiteral.append(currentChar).append(reader.readNext());
-                    }
-                }
+                char nextChar = reader.readNext();
+                stringLiteral.append(currentChar).append(nextChar);
             } else {
-                // Add the character to the string literal
                 stringLiteral.append(currentChar);
             }
         }
-
-        // Validate the complete string literal using Pattern
-        String completeString = quote + stringLiteral.toString() + quote;
-        if (Patterns.matchStringLiteral(completeString)) {
-            // Add the closing quote to the token list
-            tokens.add(new Token(TokenType.STR_DELIM, String.valueOf(quote), reader.getLine(), reader.getColumn()));
-            // Add the string literal to the token list
+    
+        if (currentChar == '"') {
+            terminated = true;
+            // Add the string literal token
             tokens.add(new Token(TokenType.STR_LIT, stringLiteral.toString(), startLine, startColumn));
-        } else {
-            errorHandler.handleInvalidString(completeString, startLine, startColumn);
+            // Add the closing double quote as a token
+            tokens.add(new Token(TokenType.STR_DELIM, "\"", reader.getLine(), reader.getColumn()));
         }
-    }
+    
+        if (!terminated) {
+            // Handle unterminated string literal
+            errorHandler.reportError(
+                ErrorType.INVALID_LITERAL,
+                "Unterminated string literal",
+                startLine,
+                startColumn
+            );
+        }
+    }    
+
+    /**
+     * Handles character literals in the source code.
+     * 
+     * This method reads a character literal enclosed in single quotes
+     * and validates it. If the character literal contains an escape sequence,
+     * it is handled accordingly. The complete character literal is checked
+     * for proper syntax. If valid, it is added to the token list as a 
+     * CHAR_LIT token. If the character literal is invalid or unterminated,
+     * an error is reported to the error handler.
+     * 
+     * @throws SourceReader.SourceReaderException If reading from the source encounters an error.
+     */
+    private void handleCharLiteral() throws SourceReader.SourceReaderException {
+        int startLine = reader.getLine();
+        int startColumn = reader.getColumn();
+    
+        // Add the opening single quote as a token
+        tokens.add(new Token(TokenType.STR_DELIM, "'", startLine, startColumn));
+    
+        StringBuilder charLiteral = new StringBuilder();
+        char currentChar = reader.readNext(); // Read the character inside the single quotes
+    
+        if (currentChar == '\\') {
+            // Handle escape sequences
+            char nextChar = reader.readNext();
+            charLiteral.append(currentChar).append(nextChar);
+        } else {
+            charLiteral.append(currentChar);
+        }
+    
+        // Check for the closing single quote
+        currentChar = reader.readNext();
+        if (currentChar == '\'') {
+            // Add the character literal token
+            tokens.add(new Token(TokenType.CHAR_LIT, charLiteral.toString(), startLine, startColumn));
+            // Add the closing single quote as a token
+            tokens.add(new Token(TokenType.STR_DELIM, "'", reader.getLine(), reader.getColumn()));
+        } else {
+            // Handle unterminated character literal
+            errorHandler.reportError(
+                ErrorType.INVALID_LITERAL,
+                "Unterminated character literal",
+                startLine,
+                startColumn
+            );
+        }
+    }    
 
     /**
      * Handles identifiers or keywords in the source code.
@@ -383,50 +342,67 @@ public class Lexer {
         identifier.append(firstChar);
         int startLine = reader.getLine();
         int startColumn = reader.getColumn();
-
-        int hyphenCount = 0;
-        boolean isUnaryMinus = false;
-        
-        // Read the full identifier or keyword
-        while (Character.isLetterOrDigit(reader.peek()) || reader.peek() == '_' || reader.peek() == '-') {
-            char next = reader.peek();
-            if (next == '-') {
-                hyphenCount++;
-                // Check for consecutive hyphens indicating a unary minus
-                if (hyphenCount > 1) {
-                    if (identifier.charAt(identifier.length() - 1) == '-') {
-                        identifier.deleteCharAt(identifier.length() - 1);
-                        isUnaryMinus = true;
-                    }
-                    break;
-                }
-            }
+    
+        // Read the identifier without consuming hyphens
+        while (Character.isLetterOrDigit(reader.peek()) || reader.peek() == '_') {
             identifier.append(reader.readNext());
         }
-
+    
+        // Process the identifier first
         String identifierStr = identifier.toString();
-        // Validate the identifier
         if (!Patterns.matchIdentifier(identifierStr)) {
             errorHandler.handleInvalidIdentifier(identifierStr, startLine, startColumn);
             return;
         }
-
+    
         // Categorize the identifier
         if (Patterns.isKeyword(identifierStr)) {
             tokens.add(new Token(TokenType.KEYWORD, identifierStr, startLine, startColumn));
         } else if (Patterns.isReservedWord(identifierStr)) {
             tokens.add(new Token(TokenType.RESERVED, identifierStr, startLine, startColumn));
-        } else if (identifierStr.indexOf('-') == -1) {
-            if (identifierStr.equals("true") || identifierStr.equals("false")) {
-                tokens.add(new Token(TokenType.BOOL_LIT, identifierStr, startLine, startColumn));
-            } else {
-                tokens.add(new Token(TokenType.IDENTIFIER, identifierStr, startLine, startColumn));
-            }
+        } else if (identifierStr.equals("true") || identifierStr.equals("false")) {
+            tokens.add(new Token(TokenType.BOOL_LIT, identifierStr, startLine, startColumn));
+        } else {
+            tokens.add(new Token(TokenType.IDENTIFIER, identifierStr, startLine, startColumn));
         }
-
-        // Handle unary minus operator if applicable
-        if (isUnaryMinus) {
-            handleOperator('-');
+    
+        // Check for operators after identifier
+        char next = reader.peek();
+        if (next == '-') {
+            try {
+                String twoAhead = reader.peekAhead(2);
+                if (twoAhead.startsWith("->")) {
+                    // Handle method operator
+                    reader.readNext(); // consume -
+                    reader.readNext(); // consume >
+                    tokens.add(new Token(TokenType.METHOD_OP, "->", reader.getLine(), reader.getColumn()));
+                } else if (twoAhead.startsWith("--")) {
+                    // Handle postfix decrement
+                    reader.readNext(); // consume first -
+                    reader.readNext(); // consume second -
+                    tokens.add(new Token(TokenType.UNARY_OP, "--", reader.getLine(), reader.getColumn()));
+                } else {
+                    // Handle single minus
+                    handleOperator(reader.readNext());
+                }
+            } catch (SourceReader.SourceReaderException e) {
+                // Handle EOF
+            }
+        } else if (next == '+') {
+            try {
+                String twoAhead = reader.peekAhead(2);
+                if (twoAhead.startsWith("++")) {
+                    // Handle postfix increment
+                    reader.readNext(); // consume first +
+                    reader.readNext(); // consume second +
+                    tokens.add(new Token(TokenType.UNARY_OP, "++", reader.getLine(), reader.getColumn()));
+                } else {
+                    // Handle single plus
+                    handleOperator(reader.readNext());
+                }
+            } catch (SourceReader.SourceReaderException e) {
+                // Handle EOF
+            }
         }
     }
 
@@ -443,120 +419,228 @@ public class Lexer {
         operator.append(firstChar);
         int startLine = reader.getLine();
         int startColumn = reader.getColumn();
-
-        // Check for `->` operator (method operator)
-        if (firstChar == '-' && reader.peek() == '>') {
-            operator.append(reader.readNext());
-            tokens.add(new Token(TokenType.METHOD_OP, operator.toString(), startLine, startColumn));
-            return;
-        }
-        
-        // Check for increment/decrement operators (++ and --)
-        if ((firstChar == '+' || firstChar == '-') && reader.peek() == firstChar) {
-            operator.append(reader.readNext());
-            tokens.add(new Token(TokenType.UNARY_OP, operator.toString(), startLine, startColumn));
-            return;
-        }
-
-        // Check for exponentiation operator (**)
-        if (firstChar == '*' && reader.peek() == '*') {
-            operator.append(reader.readNext());
-            tokens.add(new Token(TokenType.UNARY_OP, operator.toString(), startLine, startColumn));
-            return;
-        }
-
-        // Handle bitwise shift operators (<<, <<<, >>, >>>)
-        if (firstChar == '<' || firstChar == '>') {
-            char nextChar = reader.peek();
-            if (operator.toString().equals("<") && nextChar == '<') {
-                operator.append(reader.readNext()); 
-                nextChar = reader.peek();
-                if (nextChar == '<') {
-                    operator.append(reader.readNext()); 
-                    nextChar = reader.peek();
-                    if (nextChar == '<') {
-                        operator.append(reader.readNext()); 
-                        tokens.add(new Token(TokenType.BIT_OP, operator.toString(), startLine, startColumn));
-                        return;
-                    }
-                }
-                tokens.add(new Token(TokenType.BIT_OP, operator.toString(), startLine, startColumn));
-                return;
-            }
     
-            if (operator.toString().equals(">") && nextChar == '>') {
-                operator.append(reader.readNext()); 
-                nextChar = reader.peek();
-                if (nextChar == '>') {
-                    operator.append(reader.readNext()); 
-                    nextChar = reader.peek();
-                    if (nextChar == '>') {
-                        operator.append(reader.readNext()); 
-                        tokens.add(new Token(TokenType.BIT_OP, operator.toString(), startLine, startColumn));
-                        return;
-                    }
+        // Process multi-character operators in order of length
+        char nextChar = reader.peek();
+        
+        // Handle :: as a method reference operator
+        if (firstChar == ':' && reader.peek() == ':') {
+            operator.append(reader.readNext());  // Consume the second ':'
+            if (Patterns.matchMethodOp(operator.toString())) {
+                tokens.add(new Token(TokenType.METHOD_OP, "::", startLine, startColumn));
+                return;
+            }
+        }
+
+        // Handle ^| as a bitwise operator
+        if (firstChar == '^' && reader.peek() == '|') {
+            operator.append(reader.readNext());  // Consume the '|'
+            if (Patterns.matchBitwiseOp(operator.toString())) {
+                tokens.add(new Token(TokenType.BIT_OP, "^|", startLine, startColumn));
+                return;
+            }
+        }
+
+        // Handle ^ as an arithmetic operator
+        if (firstChar == '^') {
+            if (Patterns.matchArithmeticOp(operator.toString())) {
+                tokens.add(new Token(TokenType.ARITHMETIC_OP, "^", startLine, startColumn));
+                return;
+            }
+        }
+
+        // Handle >>> first (longest operator)
+        if (firstChar == '>' && nextChar == '>') {
+            operator.append(reader.readNext());
+            if (reader.peek() == '>') {
+                operator.append(reader.readNext());
+                if (Patterns.matchBitwiseOp(operator.toString())) {
+                    tokens.add(new Token(TokenType.BIT_OP, ">>>", startLine, startColumn));
+                    return;
                 }
+            } else {
+                if (Patterns.matchBitwiseOp(operator.toString())) {
+                    tokens.add(new Token(TokenType.BIT_OP, ">>", startLine, startColumn));
+                    return;
+                }
+            }
+        }
+
+        // Handle << operator
+        if (firstChar == '<' && nextChar == '<') {
+            operator.append(reader.readNext());
+            if (Patterns.matchBitwiseOp(operator.toString())) {
+                tokens.add(new Token(TokenType.BIT_OP, "<<", startLine, startColumn));
+                return;
+            }
+        }
+
+        // Handle single character bitwise operators (&, |, ^, ~)
+        if ((firstChar == '&' || firstChar == '|' || firstChar == '^' || firstChar == '~') && 
+            nextChar != '&' && nextChar != '|') {  // Ensure it's not &&, ||
+            if (Patterns.matchBitwiseOp(operator.toString())) {
                 tokens.add(new Token(TokenType.BIT_OP, operator.toString(), startLine, startColumn));
                 return;
             }
         }
+
+        // Handle || operator
+        if (firstChar == '|' && nextChar == '|') {
+            operator.append(reader.readNext());
+            if (Patterns.matchLogicalOp(operator.toString())) {
+                tokens.add(new Token(TokenType.LOG_OP, operator.toString(), startLine, startColumn));
+                return;
+            }
+        }
+
+        // Handle && operator
+        if (firstChar == '&' && nextChar == '&') {
+            operator.append(reader.readNext());
+            if (Patterns.matchLogicalOp(operator.toString())) {
+                tokens.add(new Token(TokenType.LOG_OP, operator.toString(), startLine, startColumn));
+                return;
+            }
+        }
+
+        // Handle ! operator
+        if (firstChar == '!' && nextChar != '=') {
+            if (Patterns.matchLogicalOp(operator.toString())) {
+                tokens.add(new Token(TokenType.LOG_OP, operator.toString(), startLine, startColumn));
+                return;
+            }
+        }
+
+        // Compound assignment operators (+=, -=)
+        if ((firstChar == '+' || firstChar == '-') && nextChar == '=') {
+            operator.append(reader.readNext());
+            tokens.add(new Token(TokenType.ASSIGN_OP, operator.toString(), startLine, startColumn));
+            return;
+        }
+
+        // Handle increment/decrement (++, --)
+        if (firstChar == '+' || firstChar == '-') {
+            
+            // Check for ++ or --
+            if (nextChar == firstChar) {
+                operator.append(reader.readNext());
+                tokens.add(new Token(TokenType.UNARY_OP, operator.toString(), startLine, startColumn));
+                return;
+            }
+            
+            // If not a unary context, it's arithmetic
+            if (!isUnaryContext()) {
+                tokens.add(new Token(TokenType.ARITHMETIC_OP, String.valueOf(firstChar), startLine, startColumn));
+            } else {
+                tokens.add(new Token(TokenType.UNARY_OP, String.valueOf(firstChar), startLine, startColumn));
+            }
+            return;
+        }
+
+        // Special handling for + and -
+        if (firstChar == '+' || firstChar == '-') {
+            // Check context to determine if it's unary or arithmetic
+            if (isUnaryContext()) {
+                tokens.add(new Token(TokenType.UNARY_OP, String.valueOf(firstChar), startLine, startColumn));
+            } else {
+                tokens.add(new Token(TokenType.ARITHMETIC_OP, String.valueOf(firstChar), startLine, startColumn));
+            }
+            return;
+        }
+
+        // Handle >= operator
+        if (firstChar == '>' && nextChar == '=') {
+            operator.append(reader.readNext());
+            tokens.add(new Token(TokenType.REL_OP, ">=", startLine, startColumn));
+            return;
+        }
         
-        // Handle unary operators (+ and - in unary context)
+        // Handle power operator
+        if (firstChar == '*' && nextChar == '*') {
+            operator.append(reader.readNext());
+            tokens.add(new Token(TokenType.UNARY_OP, "**", startLine, startColumn));
+            return;
+        }
+
+        // Handle unary operators in unary context
         if ((firstChar == '+' || firstChar == '-') && isUnaryContext()) {
             tokens.add(new Token(TokenType.UNARY_OP, String.valueOf(firstChar), startLine, startColumn));
             return;
         }
-    
-        // Handle logical NOT (!)
-        if (firstChar == '!' && reader.peek() != '=') {
-            tokens.add(new Token(TokenType.LOG_OP, "!", startLine, startColumn));
+
+        // Handle single > operator
+        if (firstChar == '>') {
+            tokens.add(new Token(TokenType.REL_OP, ">", startLine, startColumn));
+            return;
+        }
+
+        // Handle shift operator (<<)
+        if (firstChar == '<' && nextChar == '<') {
+            operator.append(reader.readNext());
+            tokens.add(new Token(TokenType.BIT_OP, "<<", startLine, startColumn));
+            return;
+        }
+
+        // Then check for <= as relational operator
+        if (firstChar == '<' && nextChar == '=') {
+            operator.append(reader.readNext());  // consume =
+            tokens.add(new Token(TokenType.REL_OP, "<=", startLine, startColumn));
+            return;
+        }
+
+        if (firstChar == '<') {
+            tokens.add(new Token(TokenType.REL_OP, "<", startLine, startColumn));
+            return;
+        }
+        
+        // Special case for -> operator
+        if (firstChar == '-' && nextChar == '>') {
+            operator.append(reader.readNext());
+            tokens.add(new Token(TokenType.METHOD_OP, "->", startLine, startColumn));
             return;
         }
     
-        // Handle bitwise NOT (~)
-        if (firstChar == '~') {
-            tokens.add(new Token(TokenType.BIT_OP, "~", startLine, startColumn));
+        // Special case for ^| operator
+        if (firstChar == '^' && nextChar == '|') {
+            operator.append(reader.readNext());
+            tokens.add(new Token(TokenType.BIT_OP, operator.toString(), startLine, startColumn));
             return;
         }
     
-        // Handle method operator (.)
-        if (firstChar == '.' && !Character.isDigit(reader.peek())) {
-            tokens.add(new Token(TokenType.METHOD_OP, ".", startLine, startColumn));
-            return;
-        }
-    
-        // Handle multi-character operators by checking valid two-character operators
+        // Handle other operators
         while (isOperatorSymbol(reader.peek())) {
-            char nextChar = reader.peek();
-            String currentOp = operator.toString() + nextChar;
+            String currentOp = operator.toString() + reader.peek();
             
-            if (isValidTwoCharOperator(currentOp)) {
+            if (Patterns.matchAssignOp(currentOp) || 
+                Patterns.matchRelationalOp(currentOp) ||
+                Patterns.matchLogicalOp(currentOp) ||
+                Patterns.matchBitwiseOp(currentOp)) {
                 operator.append(reader.readNext());
-                String op = operator.toString();
-                TokenType type = categorizeOperator(op);
-                tokens.add(new Token(type, op, startLine, startColumn));
-                return;
+            } else {
+                break;
             }
-            
-            break;
         }
     
-        // Handle single-character operators and categorize them
+        // Match the final operator
         String op = operator.toString();
-        if (op.equals("<") || op.equals(">")) {
+        if (Patterns.matchAssignOp(op)) {
+            tokens.add(new Token(TokenType.ASSIGN_OP, op, startLine, startColumn));
+        } else if (Patterns.matchArithmeticOp(op)) {
+            tokens.add(new Token(TokenType.ARITHMETIC_OP, op, startLine, startColumn));
+        } else if (Patterns.matchRelationalOp(op)) {
             tokens.add(new Token(TokenType.REL_OP, op, startLine, startColumn));
+        } else if (Patterns.matchLogicalOp(op)) {
+            tokens.add(new Token(TokenType.LOG_OP, op, startLine, startColumn));
+        } else if (Patterns.matchBitwiseOp(op)) {
+            tokens.add(new Token(TokenType.BIT_OP, op, startLine, startColumn));
+        } else if (Patterns.matchUnaryOp(op) && isUnaryContext()) {
+            tokens.add(new Token(TokenType.UNARY_OP, op, startLine, startColumn));
         } else {
-            TokenType type = categorizeOperator(op);
-            if (type == TokenType.UNKNOWN) {
-                errorHandler.reportError(
-                    ErrorType.INVALID_OPERATOR,
-                    "Invalid operator: " + op,
-                    startLine,
-                    startColumn
-                );
-            } else {
-                tokens.add(new Token(type, op, startLine, startColumn));
-            }
+            errorHandler.reportError(
+                ErrorType.INVALID_OPERATOR,
+                "Invalid operator: " + op,
+                startLine,
+                startColumn
+            );
         }
     }
 
@@ -572,27 +656,44 @@ public class Lexer {
      * @throws SourceReader.SourceReaderException If reading from the source encounters an error.
      */
     private void handleColon(char firstChar) throws SourceReader.SourceReaderException {
-        StringBuilder symbol = new StringBuilder();
-        symbol.append(firstChar);
+        StringBuilder operator = new StringBuilder();
+        operator.append(firstChar);
         int startLine = reader.getLine();
         int startColumn = reader.getColumn();
-
-        if (reader.peek() == '>') {
-            symbol.append(reader.readNext());
-
-            if (reader.peek() == '>') {
-                symbol.append(reader.readNext());
-                tokens.add(new Token(TokenType.INHERIT_OP, symbol.toString(), startLine, startColumn));
-            } else {
-                tokens.add(new Token(TokenType.INHERIT_OP, symbol.toString(), startLine, startColumn));
+    
+        // Check if the next character forms a valid `::`
+        if (reader.peek() == ':') {
+            operator.append(reader.readNext());  // Consume the second colon
+            if (Patterns.matchMethodOp(operator.toString())) {
+                tokens.add(new Token(TokenType.METHOD_OP, "::", startLine, startColumn));
+                return;
             }
-        } else if (isColon(reader.peek())) {
-            symbol.append(reader.readNext());
-            tokens.add(new Token(TokenType.METHOD_OP, symbol.toString(), startLine, startColumn));
-        } else {
-            tokens.add(new Token(TokenType.PUNC_DELIM, symbol.toString(), startLine, startColumn));
         }
+    
+        // Handle :> or :>> as inheritance operators
+        char nextChar = reader.peek();
+        if (nextChar == '>') {
+            operator.append(reader.readNext());
+            
+            // Check for :>> operator
+            if (reader.peek() == '>') {
+                operator.append(reader.readNext());
+                if (Patterns.matchInheritOp(operator.toString())) {
+                    tokens.add(new Token(TokenType.INHERIT_OP, operator.toString(), startLine, startColumn));
+                    return;
+                }
+            } 
+            // Check for :>
+            else if (Patterns.matchInheritOp(operator.toString())) {
+                tokens.add(new Token(TokenType.INHERIT_OP, operator.toString(), startLine, startColumn));
+                return;
+            }
+        }
+    
+        // If not an operator, treat as a punctuation delimiter
+        tokens.add(new Token(TokenType.PUNC_DELIM, ":", startLine, startColumn));
     }
+    
 
     /**
      * Handles the period operator (.) and its variants.
@@ -603,68 +704,42 @@ public class Lexer {
      * @param firstChar The initial period character.
      * @throws SourceReader.SourceReaderException If reading from the source encounters an error.
      */
+    // Add this specific handler for periods
     private void handlePeriods(char firstChar) throws SourceReader.SourceReaderException {
         StringBuilder symbol = new StringBuilder();
-        symbol.append(firstChar);
+        symbol.append(firstChar); // Start with the first '.'
         int startLine = reader.getLine();
         int startColumn = reader.getColumn();
-
-        int count = 1;
+    
+        // Count consecutive periods
         while (reader.peek() == '.') {
-            count++;
-            if (count > 3) {
+            symbol.append(reader.readNext());
+            if (symbol.length() > 3) {
+                // Report error for more than three periods
                 errorHandler.reportError(
                     ErrorType.INVALID_OPERATOR,
                     "More than three consecutive periods are not allowed",
-                    startLine,
-                    startColumn
+                    startLine, startColumn
                 );
-                break;
+                return;
             }
-            symbol.append(reader.readNext());
         }
-
-        // Determine the type of operator
-        if (count == 1) {
+    
+        // Validate and tokenize the operator using Patterns.matchLoopOp
+        String periodOp = symbol.toString();
+        if (Patterns.matchLoopOp(periodOp)) {
+            tokens.add(new Token(TokenType.LOOP_OP, periodOp, startLine, startColumn));
+        } else if (periodOp.equals(".")) {
             // Single period is a method operator
-            tokens.add(new Token(TokenType.METHOD_OP, symbol.toString(), startLine, startColumn));
-        } else if (count == 3) {
-            // Three periods is a loop operator
-            tokens.add(new Token(TokenType.LOOP_OP, symbol.toString(), startLine, startColumn));
-        } else if (count == 2) {
-            // Two periods is a loop operator
-            tokens.add(new Token(TokenType.LOOP_OP, symbol.toString(), startLine, startColumn));
+            tokens.add(new Token(TokenType.METHOD_OP, periodOp, startLine, startColumn));
+        } else {
+            // Invalid case (shouldn't occur due to length check)
+            errorHandler.reportError(
+                ErrorType.INVALID_OPERATOR,
+                "Invalid operator: " + periodOp,
+                startLine, startColumn
+            );
         }
-    }
-
-    /**
-     * Categorizes the given operator string into its corresponding token type.
-     * This method uses a switch expression to map operators to token types.
-     *
-     * @param op The operator string to categorize.
-     * @return The TokenType corresponding to the operator.
-     */
-    private TokenType categorizeOperator(String op) {
-        return switch (op) {
-            // Arithmetic operators
-            case "+", "-", "*", "/", "%" -> TokenType.ARITHMETIC_OP;
-            // Assignment operators
-            case "%=", "?=", "=", "+=", "-=", "*=", "/=" -> TokenType.ASSIGN_OP;
-            // Relational operators
-            case ">", "<", ">=", "<=", "==", "!=" -> TokenType.REL_OP;
-            // Logical operators
-            case "&&", "||", "!" -> TokenType.LOG_OP;
-            // Bitwise operators
-            case "&", "|", "~", "<<", ">>", ">>>" -> TokenType.BIT_OP;
-            // Method invocation operators
-            case ".", "::", "->" -> TokenType.METHOD_OP;
-            // Loop operators
-            case "...", ".." -> TokenType.LOOP_OP;
-            // Inheritance operators
-            case ":>", ":>>" -> TokenType.INHERIT_OP;
-            // Default case for unknown operators
-            default -> TokenType.UNKNOWN;
-        };
     }
 
     /**
@@ -677,67 +752,57 @@ public class Lexer {
      */
     private void handleNumberLiteral(char firstChar) throws SourceReader.SourceReaderException {
         StringBuilder number = new StringBuilder();
-        number.append(firstChar);
+        number.append(firstChar); // Start with the first digit
         int startLine = reader.getLine();
         int startColumn = reader.getColumn();
     
         boolean isFloat = false;
-        boolean periodOperator = false;
-        
-        while (Character.isDigit(reader.peek()) || reader.peek() == '.' || Character.isLetter(reader.peek())) {
+    
+        // Read digits and decimal points
+        while (Character.isDigit(reader.peek()) || reader.peek() == '.') {
             char nextChar = reader.peek();
-            
-            // Handle invalid identifier case
-            if (Character.isLetter(nextChar)) {
-                while (Character.isLetterOrDigit(reader.peek()) || reader.peek() == '_' || reader.peek() == '-') {
-                    number.append(reader.readNext());
-                }
-                errorHandler.handleInvalidIdentifier(number.toString(), startLine, startColumn);
+    
+            // Check for multiple periods (.. or ...)
+            if (nextChar == '.' && reader.peekAhead(2).startsWith("..")) {
+                // Hand off to handlePeriods for loop operators
+                handlePeriods(reader.readNext());
                 return;
             }
-            
+    
             if (nextChar == '.') {
-                if (isFloat) {
-                    periodOperator = true;
-                    break;
-                }
+                if (isFloat) break; // Already a float, terminate number parsing
                 isFloat = true;
             }
             number.append(reader.readNext());
         }
     
-        // Check for fraction or date format
-        if (reader.peek() == '|') {
-            number.append(reader.readNext());
-            if (Character.isDigit(reader.peek())) {
-                handleDateOrFraction(number);
-                return;
-            } else if (isOperatorSymbol(reader.peek())) {
-                handleOperator('|');
-                return;
-            }
-        }
-    
-        // Validate number format using patterns
+        // Validate the number (float or integer)
         String numberStr = number.toString();
         if (isFloat) {
             if (Patterns.matchFloat(numberStr)) {
                 tokens.add(new Token(TokenType.FLOAT_LIT, numberStr, startLine, startColumn));
             } else {
-                errorHandler.handleInvalidNumber(numberStr, startLine, startColumn);
-                return;
+                errorHandler.reportError(
+                    ErrorType.INVALID_NUMBER_FORMAT,
+                    "Invalid number format: " + numberStr,
+                    startLine, startColumn
+                );
             }
         } else {
             if (Patterns.matchInteger(numberStr)) {
                 tokens.add(new Token(TokenType.INT_LIT, numberStr, startLine, startColumn));
             } else {
-                errorHandler.handleInvalidNumber(numberStr, startLine, startColumn);
-                return;
+                errorHandler.reportError(
+                    ErrorType.INVALID_NUMBER_FORMAT,
+                    "Invalid number format: " + numberStr,
+                    startLine, startColumn
+                );
             }
         }
     
-        if (periodOperator) {
-            handlePeriods('.');
+        // Check if loop operators follow the number
+        if (reader.peek() == '.') {
+            handlePeriods(reader.readNext());
         }
     }
 
@@ -752,55 +817,46 @@ public class Lexer {
     private void handleDateOrFraction(StringBuilder value) throws SourceReader.SourceReaderException {
         int startLine = reader.getLine();
         int startColumn = reader.getColumn();
-        int separatorCount = 1; // Already have one '|'
-        
-        // Read the string until we reach the end of the file or a non-digit character
-        while (reader.peek() != SourceReader.EOF) {
-            char current = reader.peek();
-            if (current == '|') {
-                // Count the number of '|' separators
-                separatorCount++;
-                if (separatorCount > 2) {
-                    // If we have more than 2 separators, it's an invalid date format
-                    errorHandler.handleInvalidDateFormat(value.toString(), startLine, startColumn);
-                    return;
-                }
-            } else if (!Character.isDigit(current)) {
-                // If we encounter a non-digit character, we're done
-                break;
-            }
-            value.append(reader.readNext());
-        }
-
-        // Check if the string is a valid date or fraction
-        if (separatorCount == 2) {
-            // Split the string by '|'
-            String[] parts = value.toString().split("\\|");
-            if (parts.length == 3 && isValidDate(parts[0], parts[1], parts[2])) {
-                // If the string is a valid date, add it to the tokens list
-                tokens.add(new Token(TokenType.DATE_LIT, value.toString(), startLine, startColumn));
-            } else {
-                // If the string is not a valid date, report an error
-                errorHandler.handleInvalidDateFormat(value.toString(), startLine, startColumn);
-            }
-        } else {
-            // Split the string by '|'
-            String[] parts = value.toString().split("\\|");
-            if (parts.length == 2 && isValidFraction(parts[0], parts[1])) {
-                // If the string is a valid fraction, add it to the tokens list
-                tokens.add(new Token(TokenType.FRAC_LIT, value.toString(), startLine, startColumn));
-            } else {
-                // If the string is not a valid fraction, report an error
+    
+        // Read the literal until the closing bracket or EOF
+        while (reader.peek() != ']' && reader.peek() != SourceReader.EOF) {
+            char next = reader.readNext();
+            if (!Character.isDigit(next) && next != '|') {
                 errorHandler.reportError(
-                    ErrorType.INVALID_FRACTION_FORMAT,
-                    "Invalid fraction format: " + value,
-                    startLine,
-                    startColumn,
-                    "Fractions should be in the format numerator|denominator"
+                    ErrorType.INVALID_LITERAL,
+                    "Invalid character in literal: " + next,
+                    startLine, reader.getColumn()
+                );
+                return;
+            }
+            value.append(next);
+        }
+    
+        // Add closing bracket if present
+        if (reader.peek() == ']') {
+            value.append(reader.readNext());
+            String literal = value.toString();
+    
+            // Validate the literal format
+            if (literal.chars().filter(ch -> ch == '|').count() == 2 && Patterns.matchDateLiteral(literal)) {
+                tokens.add(new Token(TokenType.DATE_LIT, literal, startLine, startColumn));
+            } else if (literal.chars().filter(ch -> ch == '|').count() == 1 && Patterns.matchFractionLiteral(literal)) {
+                tokens.add(new Token(TokenType.FRAC_LIT, literal, startLine, startColumn));
+            } else {
+                errorHandler.reportError(
+                    ErrorType.INVALID_LITERAL,
+                    "Unrecognized format: " + literal,
+                    startLine, startColumn
                 );
             }
+        } else {
+            errorHandler.reportError(
+                ErrorType.MISMATCHED_DELIMITERS,
+                "Missing closing bracket for: " + value.toString(),
+                startLine, startColumn
+            );
         }
-    }
+    }    
 
     /**
      * Handles complex literals.
@@ -815,7 +871,7 @@ public class Lexer {
         complex.append(firstChar);
         int startLine = reader.getLine();
         int startColumn = reader.getColumn();
-
+    
         if (reader.peek() == '(') {
             complex.append(reader.readNext());
             int commaCount = 0;
@@ -835,29 +891,21 @@ public class Lexer {
                 }
                 complex.append(current);
             }
+    
             if (reader.peek() == ')') {
                 complex.append(reader.readNext());
-                if (valid && commaCount == 1) {
+                if (valid && commaCount == 1 && Patterns.matchComplexLiteral(complex.toString())) {
                     tokens.add(new Token(TokenType.COMP_LIT, complex.toString(), startLine, startColumn));
                     return;
                 }
-            } else if (reader.peek() == SourceReader.EOF) {
-                errorHandler.reportError(
-                    ErrorType.INVALID_COMPLEX_LITERAL,
-                    "Unterminated complex literal",
-                    startLine,
-                    startColumn,
-                    "Add closing parenthesis"
-                );
-                return;
             }
             
             errorHandler.handleInvalidComplexLiteral(complex.toString(), startLine, startColumn);
         } else {
             errorHandler.reportError(
                 ErrorType.INVALID_COMPLEX_LITERAL,
-                "Complex literal must start with $(", 
-                startLine, 
+                "Complex literal must start with $(",
+                startLine,
                 startColumn,
                 "Use format $(real,imag)"
             );
@@ -933,62 +981,35 @@ public class Lexer {
     private void handleObjectDelimiterOrOperator(char firstChar) throws SourceReader.SourceReaderException {
         int startLine = reader.getLine();
         int startColumn = reader.getColumn();
-
+    
         if (firstChar == '<') {
-            char nextChar = reader.peek();
-
-            // Check if it's beginning of an object type declaration
-            if (Character.isLetter(nextChar) || nextChar == '"' || nextChar == '\'') {
-                tokens.add(new Token(TokenType.OBJ_DELIM, "<", startLine, startColumn));
-
-                // Handle string literal if enclosed in quotes
-                if (nextChar == '"' || nextChar == '\'') {
-                    handleStringLiteral(reader.readNext());
-                } else {
-                    // Read type name following the delimiter
-                    StringBuilder typeName = new StringBuilder();
-                    while (Character.isLetterOrDigit(reader.peek()) || reader.peek() == '_') {
-                        typeName.append(reader.readNext());
-                    }
-
-                    // Report error if type name is empty
-                    if (typeName.length() == 0) {
-                        errorHandler.reportError(
-                            ErrorType.INVALID_IDENTIFIER,
-                            "Empty type name in object delimiter",
-                            reader.getLine(),
-                            reader.getColumn(),
-                            "Provide a valid type name"
-                        );
-                        return;
-                    }
-
-                    tokens.add(new Token(TokenType.STR_LIT, typeName.toString(), reader.getLine(), reader.getColumn()));
-                }
-
-                // Check for closing '>' delimiter
-                if (reader.peek() == '>') {
+            StringBuilder objectDelim = new StringBuilder();
+            objectDelim.append(firstChar);
+            
+            // Read potential type name
+            while (Character.isLetterOrDigit(reader.peek()) || reader.peek() == '_') {
+                objectDelim.append(reader.readNext());
+            }
+    
+            // Check for closing '>'
+            if (reader.peek() == '>') {
+                objectDelim.append(reader.readNext());
+                
+                // Validate using Patterns
+                if (Patterns.matchObjectDelimiter(objectDelim.toString())) {
+                    tokens.add(new Token(TokenType.OBJ_DELIM, "<", startLine, startColumn));
+                    // Add the type name without < >
+                    String typeName = objectDelim.substring(1, objectDelim.length() - 1);
+                    tokens.add(new Token(TokenType.STR_LIT, typeName, startLine, startColumn));
                     tokens.add(new Token(TokenType.OBJ_DELIM, ">", reader.getLine(), reader.getColumn()));
-                    reader.readNext();
-                } else {
-                    errorHandler.reportError(
-                        ErrorType.MISMATCHED_DELIMITERS,
-                        "Expected '>' to close object delimiter",
-                        reader.getLine(),
-                        reader.getColumn(),
-                        "Add matching '>' delimiter"
-                    );
+                    return;
                 }
-                // Treat as an operator if not followed by valid type identifier start
-                handleOperator(firstChar);
             }
+            
+            // If not a valid object delimiter, handle as operator
+            handleOperator(firstChar);
         } else if (firstChar == '>') {
-            // Check if '>' is part of an object delimiter or an operator
-            if (!tokens.isEmpty() && tokens.get(tokens.size() - 1).getType() == TokenType.OBJ_DELIM) {
-                tokens.add(new Token(TokenType.OBJ_DELIM, ">", startLine, startColumn));
-            } else {
-                handleOperator(firstChar);
-            }
+            handleOperator(firstChar);
         }
     }
 }
