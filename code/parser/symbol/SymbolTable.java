@@ -1,6 +1,5 @@
 package parser.symbol;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
@@ -8,13 +7,11 @@ class SymbolTableEntry {
     private String name;
     private String type;
     private String scope;
-    private List<String> attributes;
 
-    public SymbolTableEntry(String name, String type, String scope, List<String> attributes) {
+    public SymbolTableEntry(String name, String type, String scope) {
         this.name = name;
         this.type = type;
         this.scope = scope;
-        this.attributes = attributes;
     }
 
     public String getName() {
@@ -27,10 +24,6 @@ class SymbolTableEntry {
 
     public String getScope() {
         return scope;
-    }
-
-    public List<String> getAttributes() {
-        return attributes;
     }
 }
 public class SymbolTable {
@@ -56,7 +49,7 @@ public class SymbolTable {
     }
 
     //method for adding a new symbol to the table
-    public boolean insert(String name, String type, List<String> attributes) {
+    public boolean insert(String name, String type) {
         String currentScope = scopeStack.isEmpty() ? "global" : scopeStack.peek();
         String scopedName = currentScope + "::" + name;
     
@@ -64,7 +57,7 @@ public class SymbolTable {
             return false; // Symbol already exists in this scope.
         }
     
-        SymbolTableEntry entry = new SymbolTableEntry(name, type, currentScope, attributes);
+        SymbolTableEntry entry = new SymbolTableEntry(name, type, currentScope);
         entries.put(scopedName, entry);
         return true;
     }
