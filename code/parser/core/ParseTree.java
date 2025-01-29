@@ -26,6 +26,10 @@ public class ParseTree {
             super(value, null);
         }
 
+        public Node(NonTerminal expr) {
+            //TODO Auto-generated constructor stub
+        }
+
         @Override
         public Node addChild(NonTerminal type) {
             ParseTreeNode child = super.addChild(type);

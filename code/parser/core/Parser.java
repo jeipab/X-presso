@@ -6,7 +6,6 @@ import parser.grammar.NonTerminal;
 import parser.grammar.GrammarRule;
 import parser.symbol.SymbolTable;
 import util.SyntaxErrorHandler;
-import util.SyntaxErrorHandler.SyntaxError;
 
 import java.util.List;
 
@@ -34,15 +33,21 @@ public class Parser {
         try {
             parseProgram();
         } catch (Exception e) {
-            errorHandler.reportError("Critical Parsing Error: " + e.getMessage());
+            errorHandler.reportError(
+                SyntaxErrorHandler.ErrorType.INVALID_SYNTAX_STRUCTURE,  // Error type
+                "Critical Parsing Error: " + e.getMessage(),            // Message
+                -1,                                                     // Line (unknown, use -1)
+                -1,                                                     // Column (unknown, use -1)
+                "Check the source code structure and syntax."           // Suggestion
+            );
         }
         return parseTree;
     }
 
     private void parseProgram() {
         automaton.pushState(NonTerminal.SP_PROG);
-        ParseTree.Node classNode = parseTree.addChild(NonTerminal.CLASS);
-        parseClass(classNode);
+        ParseTreeNode classNode = parseTree.addChild(NonTerminal.CLASS); // Fix: Use ParseTreeNode
+        parseClass((ParseTree.Node) classNode);
     }
 
     private void parseClass(ParseTree.Node parent) {
@@ -181,7 +186,7 @@ public class Parser {
         parsePrecedence(parent, 1); // Start with the lowest precedence level
     }
 
-    private void parsePrecedence(ParseTree.Node parent, int precedence) {
+    private void parsePrecedence(ParseTreeNode  parent, int precedence) {
         if (precedence > 17) {
             parsePrimary(parent); // Parse primary expressions at the deepest level
             return;
@@ -199,7 +204,7 @@ public class Parser {
             }
 
             Token operator = advance(); // Consume the operator
-            ParseTree.Node operatorNode = parent.addChild(operator.getLexeme());
+            ParseTreeNode  operatorNode = parent.addChild(operator.getLexeme());
 
             if (isRightAssociative(precedence)) {
                 parsePrecedence(operatorNode, precedence); // Right-to-left associativity
@@ -211,7 +216,7 @@ public class Parser {
         }
     }
 
-    private void parsePrimary(ParseTree.Node parent) {
+    private void parsePrimary(ParseTreeNode parent) {
         Token currentToken = peek();
 
         if (currentToken.getLexeme().equals("(")) {
