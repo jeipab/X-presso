@@ -1,329 +1,179 @@
 package parser.core;
 
-import lexer.Lexer;
 import lexer.Token;
-import lexer.TokenType;
-import parser.core.ParseTree;
-import parser.core.ParserAutomaton;
-import parser.grammar.NonTerminal;
+import parser.tree.ParseTree;
+import parser.tree.NonTerminal;
 import parser.grammar.GrammarRule;
 import parser.symbol.SymbolTable;
-import util.ErrorHandler;
-
-import java.util.ArrayList;
+import parser.automaton.ParserAutomaton;
+import parser.error.SyntaxError;
 import java.util.List;
-import java.util.Stack;
 
 /**
- * Initial implementation of a recursive descent parser for the S-presso language.
- * Processes tokens from lexer to build an abstract syntax tree following the language grammar.
+ * The Parser class serves as the central component of the parsing process.
+ * It receives a stream of tokens from the lexer, validates them against grammar rules,
+ * builds an abstract syntax tree (AST), and manages symbol tables and parsing states.
  */
 public class Parser {
-    private final Lexer lexer;
-    private final ParseTree parseTree;
+    private final List<Token> tokens;
     private final SymbolTable symbolTable;
-    private final ErrorHandler errorHandler;
-    private Token currentToken;
-    private boolean hasErrors;
+    private final ParserAutomaton automaton;
+    private final ParseTree parseTree;
+    private int current = 0;
 
     /**
-     * Constructs a new Parser with required components.
-     * @param lexer The lexical analyzer providing the token stream
+     * Constructs a Parser instance with a list of tokens.
+     * Initializes supporting components such as the SymbolTable and ParserAutomaton.
      */
-    public Parser(Lexer lexer) {
-        this.lexer = lexer;
-        this.parseTree = new ParseTree();
+    public Parser(List<Token> tokens) {
+        this.tokens = tokens;
         this.symbolTable = new SymbolTable();
-        this.errorHandler = new ErrorHandler();
-        this.hasErrors = false;
-        advance(); // Get first token
-    }
-
-    /**
-     * Advances to next token in the stream
-     */
-    private void advance() {
-        try {
-            currentToken = lexer.nextToken();
-        } catch (Exception e) {
-            handleError("Lexical error: " + e.getMessage());
+        this.automaton = new ParserAutomaton();
+        this.parseTree = new ParseTree(NonTerminal.SP_PROG);
+        
+        if (!tokens.isEmpty()) {
+            System.out.println("\nParser Status:");
+            System.out.println("==============");
+            System.out.println("Number of tokens received: " + tokens.size());
+            System.out.println("Symbol table initialized");
+            printSymbolTable();
         }
     }
 
     /**
-     * Main parsing method - entry point
+     * Prints the tokens received from the lexical analyzer for debugging purposes.
+     */
+    private void printSymbolTable() {
+        System.out.println("\nReceived from Lexical Analyzer:");
+        System.out.println("==============================");
+    
+        System.out.println("Tokens received: " + tokens.size());
+        for (Token token : tokens) {
+            String lexeme = token.getLexeme()
+                                .replace("\n", "\\n")
+                                .replace("\t", "\\t")
+                                .replace("\r", "\\r");
+    
+            System.out.printf("%-20s %-15s Line: %-3d Column: %-3d%n",
+                token.getType(), lexeme, token.getLine(), token.getColumn());
+        }
+    
+        System.out.println("==============================\n");
+    }
+
+    /**
+     * Initiates the parsing process and returns the constructed parse tree.
      */
     public ParseTree parse() {
         try {
-            ParseTreeNode root = parseProgram();
-            parseTree.setRoot(root);
-            return parseTree;
-        } catch (Exception e) {
-            handleError("Fatal parsing error: " + e.getMessage());
-            return null;
+            parseProgram();
+        } catch (SyntaxError e) {
+            System.err.println("Syntax Error: " + e.getMessage());
         }
-    }
-
-    /**
-     * Parses a complete program according to grammar
-     */
-    private ParseTreeNode parseProgram() {
-        ParseTreeNode programNode = new ParseTreeNode(NonTerminal.PROGRAM);
-
-        while (isStartOfClass()) {
-            programNode.addChild(parseClass());
-        }
-
-        if (!hasMainMethod(programNode)) {
-            handleError("Program must contain a main method");
-        }
-
-        return programNode;
-    }
-
-    /**
-     * Parses a class declaration
-     */
-    private ParseTreeNode parseClass() {
-        ParseTreeNode classNode = new ParseTreeNode(NonTerminal.CLASS);
-
-        // Parse modifiers
-        if (isModifier()) {
-            classNode.addChild(parseModifiers());
-        }
-
-        // Parse class keyword
-        if (!match(TokenType.RESERVED, "class")) {
-            handleError("Expected 'class' keyword");
-            return classNode;
-        }
-
-        // Parse class name
-        ParseTreeNode identifier = parseIdentifier();
-        if (identifier != null) {
-            classNode.addChild(identifier);
-            symbolTable.enterScope(identifier.getValue());
-        }
-
-        // Parse inheritance
-        if (currentToken.getType() == TokenType.INHERIT_OP) {
-            classNode.addChild(parseInheritance());
-        }
-
-        // Parse class body
-        if (match(TokenType.DELIM, "{")) {
-            classNode.addChild(parseClassBody());
-            if (!match(TokenType.DELIM, "}")) {
-                handleError("Expected '}' at end of class");
-            }
-        } else {
-            handleError("Expected '{' after class header");
-        }
-
-        symbolTable.exitScope();
-        return classNode;
-    }
-
-    /**
-     * Parses class body including methods and fields
-     */
-    private ParseTreeNode parseClassBody() {
-        ParseTreeNode bodyNode = new ParseTreeNode(NonTerminal.CLASS_BODY);
-
-        while (!check(TokenType.DELIM, "}") && !isAtEnd()) {
-            if (isMethodStart()) {
-                bodyNode.addChild(parseMethod());
-            } else if (isFieldStart()) {
-                bodyNode.addChild(parseField());
-            } else {
-                handleError("Invalid class member");
-                advance();
-            }
-        }
-
-        return bodyNode;
-    }
-
-    /**
-     * Parses method declaration
-     */
-    private ParseTreeNode parseMethod() {
-        ParseTreeNode methodNode = new ParseTreeNode(NonTerminal.METHOD);
-
-        // Parse modifiers
-        if (isModifier()) {
-            methodNode.addChild(parseModifiers());
-        }
-
-        // Parse return type
-        methodNode.addChild(parseType());
-
-        // Parse method name
-        ParseTreeNode identifier = parseIdentifier();
-        if (identifier != null) {
-            methodNode.addChild(identifier);
-            symbolTable.enterScope(identifier.getValue());
-        }
-
-        // Parse parameters
-        if (match(TokenType.DELIM, "(")) {
-            methodNode.addChild(parseParameters());
-            if (!match(TokenType.DELIM, ")")) {
-                handleError("Expected ')' after parameters");
-            }
-        } else {
-            handleError("Expected '(' after method name");
-        }
-
-        // Parse method body
-        if (match(TokenType.DELIM, "{")) {
-            methodNode.addChild(parseStatements());
-            if (!match(TokenType.DELIM, "}")) {
-                handleError("Expected '}' at end of method");
-            }
-        }
-
-        symbolTable.exitScope();
-        return methodNode;
-    }
-
-    /**
-     * Parses parameters in method declaration
-     */
-    private ParseTreeNode parseParameters() {
-        ParseTreeNode paramsNode = new ParseTreeNode(NonTerminal.PARAMETERS);
-
-        if (!check(TokenType.DELIM, ")")) {
-            do {
-                paramsNode.addChild(parseParameter());
-            } while (match(TokenType.DELIM, ","));
-        }
-
-        return paramsNode;
-    }
-
-    /**
-     * Parses individual parameter
-     */
-    private ParseTreeNode parseParameter() {
-        ParseTreeNode paramNode = new ParseTreeNode(NonTerminal.PARAMETER);
-        
-        ParseTreeNode type = parseType();
-        ParseTreeNode identifier = parseIdentifier();
-        
-        if (type != null && identifier != null) {
-            paramNode.addChild(type);
-            paramNode.addChild(identifier);
-            symbolTable.addSymbol(identifier.getValue(), type.getValue());
-        }
-
-        return paramNode;
-    }
-
-    /**
-     * Parses statements in method body
-     */
-    private ParseTreeNode parseStatements() {
-        ParseTreeNode stmtsNode = new ParseTreeNode(NonTerminal.STATEMENTS);
-
-        while (!check(TokenType.DELIM, "}") && !isAtEnd()) {
-            ParseTreeNode stmt = parseStatement();
-            if (stmt != null) {
-                stmtsNode.addChild(stmt);
-            }
-        }
-
-        return stmtsNode;
-    }
-
-    /**
-     * Parses individual statement
-     */
-    private ParseTreeNode parseStatement() {
-        if (isDeclarationStatement()) {
-            return parseDeclaration();
-        } else if (isAssignmentStatement()) {
-            return parseAssignment();
-        } else if (isControlStatement()) {
-            return parseControlStatement();
-        } else if (isIOStatement()) {
-            return parseIOStatement();
-        } else {
-            handleError("Invalid statement");
-            advance();
-            return null;
-        }
-    }
-
-    // Helper methods for checking token types and grammar rules
-
-    private boolean isStartOfClass() {
-        return isModifier() || check(TokenType.RESERVED, "class");
-    }
-
-    private boolean isMethodStart() {
-        return isModifier() || isType();
-    }
-
-    private boolean isFieldStart() {
-        return isModifier() || isType();
-    }
-
-    private boolean isModifier() {
-        if (currentToken.getType() != TokenType.RESERVED) return false;
-        String lexeme = currentToken.getLexeme();
-        return lexeme.equals("public") || lexeme.equals("private") || 
-               lexeme.equals("protected") || lexeme.equals("static") || 
-               lexeme.equals("final");
-    }
-
-    private boolean isType() {
-        if (currentToken.getType() != TokenType.RESERVED) return false;
-        String lexeme = currentToken.getLexeme();
-        return lexeme.equals("int") || lexeme.equals("bool") || 
-               lexeme.equals("str") || lexeme.equals("float") || 
-               lexeme.equals("char") || lexeme.equals("void");
-    }
-
-    private boolean check(TokenType type, String lexeme) {
-        return currentToken.getType() == type && 
-               currentToken.getLexeme().equals(lexeme);
-    }
-
-    private boolean match(TokenType type, String lexeme) {
-        if (check(type, lexeme)) {
-            advance();
-            return true;
-        }
-        return false;
-    }
-
-    private boolean isAtEnd() {
-        return currentToken.getType() == TokenType.EOF;
-    }
-
-    // Error handling methods
-
-    private void handleError(String message) {
-        hasErrors = true;
-        errorHandler.reportError(message);
-    }
-
-    // Getter methods
-
-    public boolean hasErrors() {
-        return hasErrors;
-    }
-
-    public ParseTree getParseTree() {
         return parseTree;
     }
 
-    public SymbolTable getSymbolTable() {
-        return symbolTable;
+    /**
+     * Parses the top-level program structure and initializes the parse tree.
+     */
+    private void parseProgram() {
+        ParseTree.Node classNode = parseTree.addChild(NonTerminal.CLASS);
+        parseClass(classNode);
     }
 
-    public ErrorHandler getErrorHandler() {
-        return errorHandler;
+    /**
+     * Parses a class definition.
+     */
+    private void parseClass(ParseTree.Node parent) {
+        if (match("public")) {
+            advance();
+        }
+        expect("class", "Expected 'class' keyword");
+        Token className = expectIdentifier("Expected class name");
+        symbolTable.enterScope(className.getLexeme());
+        expect("{", "Expected '{' after class declaration");
+        ParseTree.Node classBodyNode = parent.addChild(NonTerminal.CLASS_BODY);
+        parseClassBody(classBodyNode);
+        expect("}", "Expected '}' to close class definition");
+    }
+
+    /**
+     * Parses the body of a class, including the main method.
+     */
+    private void parseClassBody(ParseTree.Node parent) {
+        ParseTree.Node mainNode = parent.addChild(NonTerminal.SP_MAIN);
+        parseMain(mainNode);
+    }
+
+    /**
+     * Parses the main method.
+     */
+    private void parseMain(ParseTree.Node parent) {
+        expect("main", "Expected 'main' method");
+        expect("(", "Expected '(' after main");
+        expectIdentifier("Expected parameter inside main");
+        expect(")", "Expected ')' to close main parameters");
+        expect("{", "Expected '{' to start main block");
+        ParseTree.Node statementsNode = parent.addChild(NonTerminal.STATEMENTS);
+        parseStatements(statementsNode);
+        expect("}", "Expected '}' to close main block");
+    }
+
+    /**
+     * Parses a sequence of statements inside a block.
+     */
+    private void parseStatements(ParseTree.Node parent) {
+        while (!check("}")) {
+            ParseTree.Node statementNode = parent.addChild(NonTerminal.STATEMENT);
+            parseStatement(statementNode);
+        }
+    }
+
+    /**
+     * Parses a single statement.
+     */
+    private void parseStatement(ParseTree.Node parent) {
+        Token currentToken = peek();
+        if (GrammarRule.isDeclaration(currentToken)) {
+            parseDeclaration(parent);
+        } else if (GrammarRule.isOutput(currentToken)) {
+            parseOutput(parent);
+        } else {
+            throw new SyntaxError(currentToken.getLine(), "Unexpected statement");
+        }
+    }
+
+    /**
+     * Parses a variable declaration.
+     */
+    private void parseDeclaration(ParseTree.Node parent) {
+        Token varType = advance();
+        Token varName = expectIdentifier("Expected variable name");
+        symbolTable.insert(varName.getLexeme(), varType.getLexeme());
+        expect("=", "Expected '=' in declaration");
+        ParseTree.Node exprNode = parent.addChild(NonTerminal.EXPRESSION);
+        parseExpression(exprNode);
+        expect(";", "Expected ';' at the end of statement");
+    }
+
+    /**
+     * Parses an output statement.
+     */
+    private void parseOutput(ParseTree.Node parent) {
+        expect("Output", "Expected 'Output'");
+        expect("::", "Expected '::' after Output");
+        expect("print", "Expected 'print' function");
+        expect("(", "Expected '(' before output content");
+        ParseTree.Node exprNode = parent.addChild(NonTerminal.EXPRESSION);
+        parseExpression(exprNode);
+        expect(")", "Expected ')' to close output");
+        expect(";", "Expected ';' after output statement");
+    }
+
+    /**
+     * Parses an expression.
+     */
+    private void parseExpression(ParseTree.Node parent) {
+        advance();
     }
 }

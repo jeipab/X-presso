@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import lexer.Lexer;
 import lexer.Token;
 import lexer.TokenType;
+import parser.core.Parser;
 import util.ErrorHandler;
 import util.SourceReader;
 
@@ -295,6 +296,9 @@ public class Main {
                 printTokensAsText(tokens);
             }
         }
+
+        // Call syntax analysis
+        performSyntaxAnalysis(tokens);
     }
     
     /**
@@ -610,5 +614,17 @@ public class Main {
             // Close the scanner to release resources
             scanner.close();
         }
+    }
+
+    /**
+     * Performs syntax analysis on the tokens from lexical analysis
+     * @param tokens List of tokens from lexical analysis
+     */
+    private static void performSyntaxAnalysis(List<Token> tokens) {
+        System.out.println("\nStarting Syntax Analysis...");
+        System.out.println("==========================");
+
+        // Initialize parser with tokens from lexer
+        Parser parser = new Parser(tokens);
     }
 }

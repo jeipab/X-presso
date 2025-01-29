@@ -9,5 +9,5 @@ ASSIGN_OP            =               Line: 2   Column: 14
 INT_LIT              25              Line: 2   Column: 16 
 ARITHMETIC_OP        +               Line: 2   Column: 19 
 INT_LIT              25              Line: 2   Column: 21 
-PUNC_DELIM           ;               Line: 2   Column: 23 
+DELIM                ;               Line: 2   Column: 23 
 DELIM                }               Line: 3   Column: 1  
