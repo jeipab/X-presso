@@ -444,7 +444,7 @@ public class GrammarRule {
         ));
 
         rules.put(NonTerminal.PROMPT_STRING, List.of(
-            List.of(NonTerminal.CHARACTER, NonTerminal.PROMPT_STRING),
+            List.of(NonTerminal.STR_LIT),
             List.of()  
         ));
 
@@ -460,7 +460,9 @@ public class GrammarRule {
         ));
 
         rules.put(NonTerminal.CHARACTER, List.of(
-            List.of(NonTerminal.CHARACTER, NonTerminal.CHARACTER),
+            List.of(NonTerminal.LETTER),
+            List.of(NonTerminal.DIGIT),
+            List.of(NonTerminal.SPECIAL_CHAR),
             List.of() 
         ));
 
