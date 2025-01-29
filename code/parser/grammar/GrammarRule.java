@@ -53,9 +53,10 @@ public class GrammarRule {
             List.of() // Empty case (no inheritance)
         ));
 
-        // Caira
         rules.put(NonTerminal.INTERFACE_INHERIT, List.of(
-            List.of(":>>", "IDENTIFIER", "[", ",", "IDENTIFIER", "]")
+            List.of(":>>", NonTerminal.IDENTIFIER, ",", NonTerminal.INTERFACE_INHERIT), //multiple interface inheritance
+            List.of(":>>", NonTerminal.IDENTIFIER), //single interface inheritance
+            List.of() //Empty case (no interface to implement)
         ));
 
         rules.put(NonTerminal.CLASS_BODY, List.of(
@@ -427,7 +428,6 @@ public class GrammarRule {
             List.of("switch-fall", "(", NonTerminal.IDENTIFIER, ")", "{", NonTerminal.CASES, "}")
         ));
 
-        // Caira
         rules.put(NonTerminal.CASES, List.of(
             List.of("case", NonTerminal.STR_LIT, ":", "{", NonTerminal.STATEMENTS, "}", NonTerminal.CASES),
             List.of("case", NonTerminal.INT_LIT, ":", "{", NonTerminal.STATEMENTS, "}", NonTerminal.CASES),
