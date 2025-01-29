@@ -75,10 +75,9 @@ public class ParserAutomaton {
             List<List<Object>> productions = GrammarRule.getProductions(nonTerminal);
 
             for (List<Object> production : productions) {
-                // Check if the production can be applied based on the token
-                if (!production.isEmpty() && production.get(0).equals(token.getLexeme())) {
-                    stateStack.pop(); // Pop the current non-terminal from the stack
-                    pushProduction(production); // Push the production onto the stack
+                if (!production.isEmpty() && GrammarRule.isValidStart(nonTerminal, token.getLexeme())) {
+                    stateStack.pop();
+                    pushProduction(production);
                     return;
                 }
             }

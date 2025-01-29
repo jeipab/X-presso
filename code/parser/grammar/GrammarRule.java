@@ -62,7 +62,8 @@ public class GrammarRule {
         rules.put(NonTerminal.CLASS_BODY, List.of(
             List.of(NonTerminal.SP_MAIN),
             List.of(NonTerminal.SP_METHOD),
-            List.of(NonTerminal.FIELD)
+            List.of(NonTerminal.FIELD),
+            List.of()
         ));
 
         rules.put(NonTerminal.SP_MAIN, List.of(
@@ -619,8 +620,15 @@ public class GrammarRule {
     }
 
     public static boolean isValidStart(NonTerminal nonTerminal, String token) {
-        return rules.containsKey(nonTerminal) &&
-                rules.get(nonTerminal).stream().anyMatch(prod -> prod.get(0).equals(token));
+        List<List<Object>> productions = rules.get(nonTerminal);
+        if (productions == null) return false;
+    
+        for (List<Object> production : productions) {
+            if (!production.isEmpty() && production.get(0).equals(token)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static boolean isIdentifier(Token token) {
