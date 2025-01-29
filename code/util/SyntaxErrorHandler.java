@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Stack;
 import lexer.Token;
 
-
-
 public class SyntaxErrorHandler {
     private final List<SyntaxError> errors;
     private String currentFile;
@@ -148,6 +146,8 @@ public class SyntaxErrorHandler {
             case INSERT_TOKEN -> {
             }
             case PANIC_MODE -> synchronize();
+
+            default -> throw new IllegalArgumentException("Unexpected value: " + strategy);
         }
         // Implementation for skipping token
         // Implementation for inserting missing token
