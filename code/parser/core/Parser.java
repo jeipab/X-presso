@@ -158,7 +158,83 @@ public class Parser {
     }
 
     private void parseExpression(ParseTree.Node parent) {
-        automaton.transition(peek());
-        advance(); // Placeholder for operator precedence parsing
+        parsePrecedence(parent, 1); // Start with the lowest precedence level
+    }
+
+    private void parsePrecedence(ParseTree.Node parent, int precedence) {
+        if (precedence > 17) {
+            parsePrimary(parent); // Parse primary expressions at the deepest level
+            return;
+        }
+
+        ParseTree.Node left = new ParseTree.Node(NonTerminal.EXPRESSION);
+        parsePrecedence(left, precedence + 1); // Parse higher precedence expressions first
+
+        while (true) {
+            Token currentToken = peek();
+
+            // Check if the current token matches an operator for this precedence level
+            if (!GrammarRule.isOperatorAtPrecedence(currentToken, precedence)) {
+                break; // Stop parsing if the operator does not match this precedence level
+            }
+
+            Token operator = advance(); // Consume the operator
+            ParseTree.Node operatorNode = parent.addChild(operator.getLexeme());
+
+            if (isRightAssociative(precedence)) {
+                parsePrecedence(operatorNode, precedence); // Right-to-left associativity
+            } else {
+                parsePrecedence(operatorNode, precedence + 1); // Left-to-right associativity
+            }
+
+            parent.addChild(left); // Add the parsed left-hand expression
+        }
+    }
+
+    private void parsePrimary(ParseTree.Node parent) {
+        Token currentToken = peek();
+
+        if (currentToken.getLexeme().equals("(")) {
+            advance(); // Consume '('
+            parsePrecedence(parent, 1); // Parse inner expression
+            expect(")", "Expected ')' to close grouping");
+        } else if (GrammarRule.isLiteral(currentToken)) {
+            parent.addChild(advance().getLexeme()); // Add literal
+        } else if (GrammarRule.isIdentifier(currentToken)) {
+            parent.addChild(advance().getLexeme()); // Add identifier
+        } else {
+            throw new SyntaxError(currentToken.getLine(), "Unexpected token in expression");
+        }
+    }
+
+    private boolean isRightAssociative(int precedence) {
+        return precedence == 4 || precedence == 5 || precedence == 16 || precedence == 17; // Based on provided table
+    }
+
+    private Token advance() {
+        return tokens.get(current++);
+    }
+
+    private Token peek() {
+        return tokens.get(current);
+    }
+
+    private boolean check(String expected) {
+        return current < tokens.size() && tokens.get(current).getLexeme().equals(expected);
+    }
+
+    private Token expect(String expected, String errorMessage) {
+        if (!check(expected)) {
+            throw new SyntaxError(peek().getLine(), errorMessage);
+        }
+        return advance();
+    }
+
+    private Token expectIdentifier(String errorMessage) {
+        Token token = advance();
+        if (!GrammarRule.isIdentifier(token)) {
+            throw new SyntaxError(token.getLine(), errorMessage);
+        }
+        return token;
     }
 }
