@@ -79,9 +79,9 @@ public class GrammarRule {
         ));
 
         rules.put(NonTerminal.CLASS_INHERIT, List.of(
-            List.of(":>", NonTerminal.IDENTIFIER, NonTerminal.CLASS_INHERIT), // Multiple parents (Recursion)
+            List.of(":>", NonTerminal.IDENTIFIER, NonTerminal.CLASS_INHERIT), // Recursive multiple inheritance
             List.of(":>", NonTerminal.IDENTIFIER), // Single inheritance
-            List.of() // Empty case (no inheritance)
+            List.of() // No inheritance
         ));
 
         rules.put(NonTerminal.INTERFACE_INHERIT, List.of(
@@ -566,9 +566,12 @@ public class GrammarRule {
             List.of("for", "(", NonTerminal.ASS_STATE, ";", NonTerminal.CONDITION, ";", NonTerminal.EXPR, ")", "{", NonTerminal.STATEMENTS, "}")
         ));
 
-        // While Loop Production Rule
         rules.put(NonTerminal.WHILE_LOOP, List.of(
-            List.of("while", "(", NonTerminal.CONDITION, ")", "{", NonTerminal.STATEMENTS, "}")
+            // Standard while-loop: while (condition) { statements }
+            List.of("while", "(", NonTerminal.CONDITION, ")", "{", NonTerminal.STATEMENTS, "}"),
+
+            // While-loop with `exit-when`: while (condition) exit-when (condition) { statements }
+            List.of("while", "(", NonTerminal.CONDITION, ")", "exit-when", "(", NonTerminal.CONDITION, ")", "{", NonTerminal.STATEMENTS, "}")
         ));
 
         // Do-While Loop Production Rule
@@ -578,7 +581,8 @@ public class GrammarRule {
 
         // Enhanced For Loop Production Rule
         rules.put(NonTerminal.ENHANCED_FOR, List.of(
-            List.of("do", "for", "(", NonTerminal.PARAMETER, ":", NonTerminal.OPERAND, ")", "{", NonTerminal.STATEMENTS, "}")
+            List.of("do", "for", "(", NonTerminal.PARAMETER, ":", NonTerminal.OPERAND, ")", "{", NonTerminal.STATEMENTS, "}"),
+            List.of("do", "for", "(", NonTerminal.IDENTIFIER, "in", NonTerminal.IDENTIFIER, ")", "{", NonTerminal.STATEMENTS, "}", "while", NonTerminal.EXPR, "exit-when", NonTerminal.EXPR)
         ));
 
         rules.put(NonTerminal.FILTER_EXPR, List.of(

@@ -32,4 +32,14 @@ public class ParserAutomaton {
     public boolean isStackEmpty() {
         return stateStack.isEmpty();
     }
+
+    public void transition(Token token) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'transition'");
+    }
+
+    public boolean processToken(Token token) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'processToken'");
+    }
 }
