@@ -1,6 +1,41 @@
 package parser.core;
 
 import parser.grammar.NonTerminal;
+
+public class ParseTree {
+    private final ParseTreeNode root;
+
+    public ParseTree(NonTerminal rootType) {
+        this.root = new ParseTreeNode(rootType);
+    }
+
+    public ParseTreeNode getRoot() {
+        return root;
+    }
+
+    public ParseTreeNode addChild(NonTerminal type) {
+        return root.addChild(type);
+    }
+
+    public ParseTreeNode addChild(String value) {
+        return root.addChild(value);
+    }
+
+    public static class Node extends ParseTreeNode {
+        public Node(String value) {
+            super(value, null);
+        }
+
+        @Override
+        public Node addChild(NonTerminal type) {
+            ParseTreeNode child = super.addChild(type);
+            return new Node(child.getValue());
+        }
+    }
+}
+
+/*
+import parser.grammar.NonTerminal;
 public class ParseTree {
      private final Node root;
  
@@ -32,3 +67,5 @@ public class ParseTree {
      }
  }
  
+
+ */
