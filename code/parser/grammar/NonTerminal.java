@@ -1,14 +1,10 @@
 package parser.grammar;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import lexer.TokenType;
-import parser.grammar.GrammarRule;
-import lexer.*;
 
 public enum NonTerminal {
     // Core Program Structures
