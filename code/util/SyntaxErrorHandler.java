@@ -31,7 +31,7 @@ public class SyntaxErrorHandler {
         SYNTAX_AMBIGUITY
     }
 
-      private enum RecoveryStrategy {
+    private enum RecoveryStrategy {
         SKIP_TOKEN,        // Skip the problematic token
         INSERT_TOKEN,      // Insert missing token
         DELETE_TOKEN,      // Delete unexpected token
@@ -178,24 +178,23 @@ public class SyntaxErrorHandler {
     /**
      * Enhanced error handlers with context tracking
      */
-   public void handleUnexpectedToken(Token token, Token expected, int line, int column) {
-    String tokenValue = token != null ? token.getValue() : "null";
-    String expectedValue = expected != null ? expected.getValue() : "null";
-    
-    reportError(
-            ErrorType.UNEXPECTED_TOKEN,
-            String.format("Unexpected token: '%s'. Expected: %s", 
-                         tokenValue, expectedValue),
-            line,
-            column,
-            "Verify the input and ensure the token matches the expected grammar"
-        );
+    public void handleUnexpectedToken(Token token, Token expected, int line, int column) {
+        String tokenValue = token != null ? token.getValue() : "null";
+        String expectedValue = expected != null ? expected.getValue() : "null";
+        
+        reportError(
+                ErrorType.UNEXPECTED_TOKEN,
+                String.format("Unexpected token: '%s'. Expected: %s", 
+                            tokenValue, expectedValue),
+                line,
+                column,
+                "Verify the input and ensure the token matches the expected grammar"
+            );
     }
     /**
      * Handles missing token errors.
      */
-
-   public void handleMissingToken(String expected, int line, int column) {
+    public void handleMissingToken(String expected, int line, int column) {
         reportError(
             ErrorType.MISSING_TOKEN,
             String.format("Missing token: '%s'", expected),
@@ -317,5 +316,3 @@ public class SyntaxErrorHandler {
         return this.currentFile;
     }
 }
-
-
