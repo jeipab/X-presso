@@ -1,70 +1,74 @@
 package parser.core;
 
-import java.util.*;
-
+import lexer.*;
+import java.util.List;
 
 public class ParseTree {
     private ParseTreeNode root;
+    
+    public ParseTree() {
+        this.root = null;
+    }
 
-    public ParseTree(String startSymbol) {
-        this.root = new ParseTreeNode(startSymbol, false);
+    public void setRoot(ParseTreeNode root) {
+        this.root = root;
     }
 
     public ParseTreeNode getRoot() {
         return root;
     }
 
-    // Expands the first non-terminal (Leftmost)
-    public void applyLeftmostDerivation(ParseTreeNode node, List<String> production) {
-        if (node.isTerminal()) return;
+    // Build the parse tree (could be from a grammar parser or syntax analysis)
+    public void build(ParseTreeNode rootNode) {
+        this.root = rootNode;
+    }
 
-        node.getChildren().clear(); // Clear previous children
-
-        for (String symbol : production) {
-            node.addChild(new ParseTreeNode(symbol, isTerminal(symbol)));
+    // Visualize the tree (could be done with simple print statements or graphical representation)
+    public void visualize() {
+        if (root != null) {
+            root.traversePreOrder();
         }
     }
 
-    // Expands the last non-terminal (Rightmost)
-    public void applyRightmostDerivation(ParseTreeNode node, List<String> production) {
-        if (node.isTerminal()) return;
+    // Export the tree to a specific format (e.g., JSON or XML)
+    public String export() {
+        return exportNode(root);
+    }
 
-        node.getChildren().clear();
-
-        for (int i = production.size() - 1; i >= 0; i--) {
-            node.addChild(new ParseTreeNode(production.get(i), isTerminal(production.get(i))));
+    private String exportNode(ParseTreeNode node) {
+        if (node == null) return "";
+        
+        StringBuilder sb = new StringBuilder();
+        sb.append("{\n");
+        sb.append("  \"value\": \"" + node.toString() + "\",\n");
+        sb.append("  \"children\": [\n");
+        for (ParseTreeNode child : node.children) {
+            sb.append(exportNode(child) + ",\n");
         }
+        sb.append("  ]\n");
+        sb.append("}");
+        return sb.toString();
     }
 
-    private boolean isTerminal(String symbol) {
-        return symbol.matches("[a-z0-9]+"); // Lowercase letters and numbers are terminals
+    // Validate the parse tree (checking for syntax correctness, such as matching parenthesis or proper structure)
+    public boolean validate() {
+        return validateNode(root);
     }
 
-    // Print Tree in Pyramid Format
-    public void printTree() {
-        List<List<String>> levels = new ArrayList<>();
-        collectLevels(root, 0, levels);
+    private boolean validateNode(ParseTreeNode node) {
+        if (node == null) return true;
+        
+        // Example of validation: check if the node type is valid based on some conditions
+        if (node.getParent() == null && node.type == TokenType.UNKNOWN) {
+            return false; // root node can't have an unknown type
+        }
 
-        int maxWidth = levels.get(levels.size() - 1).size() * 4; // Adjust for spacing
-        for (int i = 0; i < levels.size(); i++) {
-            int padding = (maxWidth - levels.get(i).size() * 4) / 2;
-            System.out.print(" ".repeat(padding));
-            for (String value : levels.get(i)) {
-                System.out.print(value + "   ");
+        // Additional validations can be added for more complex grammar structures
+        for (ParseTreeNode child : node.children) {
+            if (!validateNode(child)) {
+                return false;
             }
-            System.out.println();
         }
-    }
-
-    private void collectLevels(ParseTreeNode node, int depth, List<List<String>> levels) {
-        if (levels.size() <= depth) {
-            levels.add(new ArrayList<>());
-        }
-
-        levels.get(depth).add(node.getValue());
-
-        for (ParseTreeNode child : node.getChildren()) {
-            collectLevels(child, depth + 1, levels);
-        }
+        return true;
     }
 }
