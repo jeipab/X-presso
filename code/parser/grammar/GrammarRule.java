@@ -73,13 +73,18 @@ public class GrammarRule {
 
         // Clarence
         rules.put(NonTerminal.SP_METHOD, List.of(
-            List.of("[", NonTerminal.ACCESS_MOD, "]", "[", NonTerminal.NON_ACCESS_MOD, "]", NonTerminal.DATA_TYPE, "IDENTIFIER", "(", "[", NonTerminal.PARAMETERS, "]", ")", "{", NonTerminal.STATEMENTS, "}")
+            List.of("[", NonTerminal.ACCESS_MOD, "]", "[", NonTerminal.NON_ACCESS_MOD, "]", NonTerminal.DATA_TYPE, "IDENTIFIER", "(", "[", NonTerminal.PARAMETERS, "]", ")", "{", NonTerminal.STATEMENTS, "}"),
+            List.of("[", NonTerminal.ACCESS_MOD, "]", NonTerminal.DATA_TYPE, "IDENTIFIER", "(", "[", NonTerminal.PARAMETERS, "]", ")", "{", NonTerminal.STATEMENTS, "}"),
+            List.of("[", NonTerminal.NON_ACCESS_MOD, "]", NonTerminal.DATA_TYPE, "IDENTIFIER", "(", "[", NonTerminal.PARAMETERS, "]", ")", "{", NonTerminal.STATEMENTS, "}"),
+            List.of(NonTerminal.DATA_TYPE, "IDENTIFIER", "(", "[", NonTerminal.PARAMETERS, "]", ")", "{", NonTerminal.STATEMENTS, "}")
         ));
-
         // Clarence
         //Declarations
         rules.put(NonTerminal.FIELD, List.of(
-            List.of("[", NonTerminal.ACCESS_MOD, "]", "[", NonTerminal.NON_ACCESS_MOD, "]", NonTerminal.DATA_TYPE, "IDENTIFIER", ";")
+            List.of("[", NonTerminal.ACCESS_MOD, "]", "[", NonTerminal.NON_ACCESS_MOD, "]", NonTerminal.DATA_TYPE, "IDENTIFIER", ";"),
+            List.of("[", NonTerminal.ACCESS_MOD, "]", "]", NonTerminal.DATA_TYPE, "IDENTIFIER", ";"),
+            List.of("[", NonTerminal.NON_ACCESS_MOD, "]", NonTerminal.DATA_TYPE, "IDENTIFIER", ";"),
+            List.of(NonTerminal.DATA_TYPE, "IDENTIFIER", ";")
         ));
 
         rules.put(NonTerminal.DATA_TYPE, List.of(
