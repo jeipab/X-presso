@@ -28,7 +28,7 @@ public class SyntaxErrorHandler {
         INVALID_GRAMMAR_RULE,
         MISMATCHED_PARENTHESIS,
         INVALID_STATEMENT,
-        SYNTAX_AMBIGUITY
+        SYNTAX_AMBIGUITY, UNEXPECTED_EOF
     }
 
     private enum RecoveryStrategy {
