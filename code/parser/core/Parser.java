@@ -55,13 +55,69 @@ public class Parser {
     }
 
     private void parseClass(ParseTreeNode parent) {
-        automaton.transition(peek());
+        // Parse modifiers if they exist using the grammar rules
+        if (isPartOf(NonTerminal.CLASS_MODS, peek())) {
+            parseClassModifiers();
+        }
+    
+        // Parse the rest of the class declaration
+        automaton.transition(peek()); // Sync automaton state
+        parseClassDefinition(parent);
+    }
+
+    /**
+     * Parses class modifiers according to the grammar rules
+     */
+    private void parseClassModifiers() {
+        while (peek() != null && isPartOf(NonTerminal.CLASS_MODS, peek())) {
+            Token modifier = peek();
+            
+            if (isPartOf(NonTerminal.ACCESS_MOD, modifier)) {
+                automaton.transition(modifier);
+                advance();
+            } else if (isPartOf(NonTerminal.NON_ACCESS_MOD, modifier)) {
+                automaton.transition(modifier);
+                advance();
+            } else {
+                break;
+            }
+        }
+    }
+
+    /**
+     * Parses the core class definition after modifiers
+     */
+    private void parseClassDefinition(ParseTreeNode parent) {
+        // Expect class keyword
+        expect("class", "Expected 'class' keyword");
+
+        // Parse class name
         Token className = expectIdentifier("Expected class name");
         symbolTable.enterScope(className.getLexeme());
+
+        // Parse inheritance if present
+        if (isPartOf(NonTerminal.CLASS_INHERIT, peek())) {
+            parseInheritance();
+        }
+
+        // Parse class body
         expect("{", "Expected '{' after class declaration");
         ParseTreeNode classBodyNode = parent.addChild(NonTerminal.CLASS_BODY);
         parseClassBody(classBodyNode);
         expect("}", "Expected '}' to close class definition");
+
+        symbolTable.exitScope();
+    }
+
+    /**
+     * Parses class inheritance declarations
+     */
+    private void parseInheritance() {
+        while (peek() != null && peek().getLexeme().equals(":>")) {
+            advance(); // consume :>
+            Token parentClass = expectIdentifier("Expected parent class name");
+            // Could add symbol table validation here for the parent class
+        }
     }
 
     private void parseClassBody(ParseTreeNode parent) {
@@ -285,10 +341,20 @@ public class Parser {
     }
 
     private Token expect(String expected, String errorMessage) {
-        if (!check(expected)) {
-            Token errorToken = new Token(TokenType.UNKNOWN, expected, peek().getLine(), peek().getColumn());
-            errorHandler.handleMissingToken(expected, errorToken.getLine(), errorToken.getColumn());
-            return errorToken; // Returning a placeholder token to prevent crash
+        Token current = peek();
+        if (!current.getLexeme().equals(expected)) {
+            NonTerminal context = automaton.getCurrentState();
+            String contextMsg = String.format("While parsing %s", context);
+            
+            errorHandler.reportError(
+                SyntaxErrorHandler.ErrorType.MISSING_TOKEN,
+                errorMessage,
+                current.getLine(),
+                current.getColumn(),
+                String.format("Expected '%s' but found '%s'. %s", 
+                    expected, current.getLexeme(), contextMsg)
+            );
+            return current;
         }
         return advance();
     }
@@ -296,13 +362,14 @@ public class Parser {
     private Token expectIdentifier(String errorMessage) {
         Token token = advance();
         if (!GrammarRule.isIdentifier(token)) {
-            throw new SyntaxErrorHandler.SyntaxError(
-                SyntaxErrorHandler.ErrorType.UNEXPECTED_TOKEN,  // Error Type
-                errorMessage,                                   // Error Message
-                token.getLine(),                                // Line Number
-                token.getColumn(),                              // Column Number
-                "Expected an identifier, but found: " + token.getLexeme(), // Suggestion
-                "Parsing identifier"                           // Context
+            NonTerminal context = automaton.getCurrentState();
+            errorHandler.reportError(
+                SyntaxErrorHandler.ErrorType.UNEXPECTED_TOKEN,
+                errorMessage,
+                token.getLine(),
+                token.getColumn(),
+                String.format("Found '%s' while parsing %s", 
+                    token.getLexeme(), context)
             );
         }
         return token;
@@ -318,5 +385,25 @@ public class Parser {
 
     public boolean atEnd() {
         return current >= tokens.size();
+    }
+
+    /**
+ * Checks if a token can be derived from a given non-terminal using the grammar rules
+ */
+    private boolean isPartOf(NonTerminal nonTerminal, Token token) {
+        List<List<Object>> productions = GrammarRule.getProductions(nonTerminal);
+        if (productions == null) return false;
+
+        for (List<Object> production : productions) {
+            if (production.isEmpty()) continue;
+            Object first = production.get(0);
+            
+            if (first instanceof String) {
+                if (first.equals(token.getLexeme())) return true;
+            } else if (first instanceof NonTerminal) {
+                if (isPartOf((NonTerminal)first, token)) return true;
+            }
+        }
+        return false;
     }
 }

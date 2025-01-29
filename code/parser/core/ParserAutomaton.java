@@ -5,6 +5,7 @@ import parser.grammar.NonTerminal;
 import parser.grammar.GrammarRule;
 import util.SyntaxErrorHandler;
 import java.util.Stack;
+import java.util.HashSet;
 import java.util.List;
 
 public class ParserAutomaton {
@@ -15,47 +16,57 @@ public class ParserAutomaton {
     public ParserAutomaton() {
         this.stateStack = new Stack<>();
         this.syntaxErrorHandler = new SyntaxErrorHandler();
-        this.currentState = NonTerminal.SP_PROG; // Start at SP_PROG
+        this.currentState = NonTerminal.SP_PROG;
     }
 
-    public void pushState(NonTerminal nonTerminal) {
-        stateStack.push(nonTerminal);
-        currentState = nonTerminal;
-    }
-
-    public void popState() {
-        if (!stateStack.isEmpty()) {
-            stateStack.pop();
-            currentState = stateStack.isEmpty() ? NonTerminal.SP_PROG : (NonTerminal) stateStack.peek();
-        }
-    }
-
-    // This function processes the current token against the top of the stack
     public boolean processToken(Token token) {
-        if (!GrammarRule.isValidStart(currentState, token.getLexeme())) {
-            // Check if the first token is valid for any next possible non-terminals
-            for (List<Object> production : GrammarRule.getProductions(currentState)) {
-                if (!production.isEmpty() && production.get(0) instanceof NonTerminal) {
-                    NonTerminal firstNonTerminal = (NonTerminal) production.get(0);
-                    if (GrammarRule.isValidStart(firstNonTerminal, token.getLexeme())) {
-                        return true;
-                    }
-                }
-            }
+        return isValidTokenForState(currentState, token, new HashSet<>());
+    }
+
+    /**
+     * Recursively checks if a token is valid for a given non-terminal state
+     * by exploring all possible productions.
+     */
+    private boolean isValidTokenForState(NonTerminal state, Token token, HashSet<NonTerminal> visited) {
+        // Prevent infinite recursion
+        if (visited.contains(state)) {
             return false;
         }
-        
+        visited.add(state);
+
+        List<List<Object>> productions = GrammarRule.getProductions(state);
+        if (productions == null) return false;
+
+        // Check each production for the current state
+        for (List<Object> production : productions) {
+            if (production.isEmpty()) continue;
+
+            Object first = production.get(0);
+            if (first instanceof String) {
+                // Direct terminal match
+                if (first.equals(token.getLexeme())) {
+                    return true;
+                }
+            } else if (first instanceof NonTerminal) {
+                // For non-terminals, recursively check their productions
+                NonTerminal nonTerm = (NonTerminal) first;
+                if (isValidTokenForState(nonTerm, token, visited)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
-    // This function handles the actual state transition based on the token
     public void transition(Token token) {
         if (stateStack.isEmpty()) {
             syntaxErrorHandler.reportError(
-                SyntaxErrorHandler.ErrorType.UNEXPECTED_TOKEN,  // Error type
-                "Unexpected token '" + token.getLexeme() + "' at end of input.", // Message
-                token.getLine(),  // Line number
-                token.getColumn(),  // Column number
-                "Check for missing tokens or incorrect syntax." // Suggestion
+                SyntaxErrorHandler.ErrorType.UNEXPECTED_TOKEN,
+                "Unexpected token '" + token.getLexeme() + "' at end of input.",
+                token.getLine(),
+                token.getColumn(),
+                "Check for missing tokens or incorrect syntax."
             );
             return;
         }
@@ -68,11 +79,11 @@ public class ParserAutomaton {
                 stateStack.pop(); // Consume terminal
             } else {
                 syntaxErrorHandler.reportError(
-                    SyntaxErrorHandler.ErrorType.UNEXPECTED_TOKEN,  // Error type
-                    "Syntax error: Expected '" + top + "', found '" + token.getLexeme() + "'.", // Error message
-                    token.getLine(),  // Line number
-                    token.getColumn(),  // Column number
-                    "Check for missing or incorrect syntax structure." // Suggestion
+                    SyntaxErrorHandler.ErrorType.UNEXPECTED_TOKEN,
+                    "Expected '" + top + "', found '" + token.getLexeme() + "'.",
+                    token.getLine(),
+                    token.getColumn(),
+                    "Check for missing or incorrect syntax structure."
                 );
             }
             return;
@@ -80,55 +91,79 @@ public class ParserAutomaton {
 
         if (top instanceof NonTerminal) {
             NonTerminal nonTerminal = (NonTerminal) top;
-            List<List<Object>> productions = GrammarRule.getProductions(nonTerminal);
-
-            for (List<Object> production : productions) {
-                if (!production.isEmpty()) {
-                    Object firstElement = production.get(0);
-            
-                    // If token matches exactly, transition normally
-                    if (firstElement.equals(token.getLexeme())) {
-                        stateStack.pop();
-                        pushProduction(production);
-                        return;
-                    }
-            
-                    // If first element is a NonTerminal, check its valid start symbols
-                    if (firstElement instanceof NonTerminal && GrammarRule.isValidStart((NonTerminal) firstElement, token.getLexeme())) {
-                        stateStack.pop();
-                        pushProduction(production);
-                        return;
-                    }
-                }
+            if (handleNonTerminalTransition(nonTerminal, token)) {
+                stateStack.pop(); // Remove current non-terminal after successful transition
+            } else {
+                syntaxErrorHandler.reportError(
+                    SyntaxErrorHandler.ErrorType.UNEXPECTED_TOKEN,
+                    "Unexpected token '" + token.getLexeme() + "' in state " + nonTerminal,
+                    token.getLine(),
+                    token.getColumn(),
+                    "Check syntax structure and valid tokens for this context."
+                );
             }
-            
-
-            syntaxErrorHandler.reportError(
-                SyntaxErrorHandler.ErrorType.UNEXPECTED_TOKEN,  // Error type
-                "Unexpected token '" + token.getLexeme() + "' in state " + nonTerminal +
-                ". Expected one of: " + getExpectedTokens(productions), // Error message
-                token.getLine(),  // Line number
-                token.getColumn(),  // Column number
-                "Check if the token is misplaced or if a different syntax is required." // Suggestion
-            );
         }
     }
 
-    // Push the production's elements onto the stack in reverse order
+    /**
+     * Handles transitions for non-terminal states by recursively checking productions
+     * and pushing appropriate production rules onto the stack.
+     */
+    private boolean handleNonTerminalTransition(NonTerminal nonTerminal, Token token) {
+        List<List<Object>> productions = GrammarRule.getProductions(nonTerminal);
+        if (productions == null) return false;
+
+        // Try each production
+        for (List<Object> production : productions) {
+            if (production.isEmpty()) {
+                // Handle epsilon productions
+                continue;
+            }
+
+            if (isValidProduction(production, token, new HashSet<>())) {
+                pushProduction(production);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks if a production is valid for the given token by recursively
+     * examining its components.
+     */
+    private boolean isValidProduction(List<Object> production, Token token, HashSet<NonTerminal> visited) {
+        if (production.isEmpty()) return false;
+
+        Object first = production.get(0);
+        if (first instanceof String) {
+            return first.equals(token.getLexeme());
+        } else if (first instanceof NonTerminal) {
+            NonTerminal nonTerm = (NonTerminal) first;
+            return isValidTokenForState(nonTerm, token, visited);
+        }
+
+        return false;
+    }
+
     private void pushProduction(List<Object> production) {
+        // Push in reverse order to maintain correct parsing order
         for (int i = production.size() - 1; i >= 0; i--) {
             stateStack.push(production.get(i));
         }
     }
 
-    private String getExpectedTokens(List<List<Object>> productions) {
-        StringBuilder expected = new StringBuilder();
-        for (List<Object> production : productions) {
-            if (!production.isEmpty() && production.get(0) instanceof String) {
-                expected.append("'").append(production.get(0)).append("', ");
-            }
+    public void pushState(NonTerminal nonTerminal) {
+        stateStack.push(nonTerminal);
+        currentState = nonTerminal;
+    }
+
+    public void popState() {
+        if (!stateStack.isEmpty()) {
+            stateStack.pop();
+            currentState = stateStack.isEmpty() ? NonTerminal.SP_PROG : (NonTerminal) stateStack.peek();
         }
-        return expected.length() > 0 ? expected.substring(0, expected.length() - 2) : "unknown tokens";
     }
 
     public NonTerminal getCurrentState() {

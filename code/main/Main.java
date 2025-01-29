@@ -231,6 +231,12 @@ public class Main {
             
             // 4. Print token summary
             printTokenSummary(tokens);
+
+            // 5. Filter whitespace before parsing
+            List<Token> filteredTokens = filterWhitespaceTokens(tokens);
+
+            // 6. Perform syntax analysis with filtered tokens
+            performSyntaxAnalysis(filteredTokens);
         } catch (Exception e) {
             throw new IOException("Error processing file: " + e.getMessage(), e);
         }
@@ -297,9 +303,6 @@ public class Main {
                 printTokensAsText(tokens);
             }
         }
-
-        // Call syntax analysis
-        performSyntaxAnalysis(tokens);
     }
     
     /**
@@ -618,31 +621,38 @@ public class Main {
     }
 
     /**
-     * Performs syntax analysis on the tokens from lexical analysis
-     * @param tokens List of tokens from lexical analysis
+     * Filters out whitespace tokens from the token list.
+     * This should be done before passing tokens to the parser.
+     * 
+     * @param tokens The original list of tokens
+     * @return A new list with whitespace tokens removed
+     */
+    private List<Token> filterWhitespaceTokens(List<Token> tokens) {
+        return tokens.stream()
+            .filter(token -> token.getType() != TokenType.WHITESPACE && 
+                            token.getType() != TokenType.COMMENT) // Also filter comments if desired
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Performs syntax analysis using the filtered token list
      */
     private static void performSyntaxAnalysis(List<Token> tokens) {
         System.out.println("\nStarting Syntax Analysis...");
         System.out.println("==========================");
-    
-        // Define output directory
-        String dotFilePath = "C:\\Users\\Asus\\Documents\\GitHub\\X-presso\\ast\\parse_tree.dot";
-    
-        // Ensure the directory exists
+
+        String dotFilePath = "ast/parse_tree.dot";
         File outputFile = new File(dotFilePath);
-        outputFile.getParentFile().mkdirs(); // Create "ast" folder if it doesn't exist
-    
-        // Initialize parser
+        outputFile.getParentFile().mkdirs();
+
+        // Initialize parser with filtered tokens
         Parser parser = new Parser(tokens);
         ParseTree parseTree = parser.parse();
-    
+
         // Convert parse tree to Graphviz DOT format
         String dotOutput = parseTree.toGraphviz();
-    
-        // Print DOT output to console for debugging
         System.out.println(dotOutput);
-    
-        // Save the DOT output to a file
+
         try (FileWriter writer = new FileWriter(dotFilePath)) {
             writer.write(dotOutput);
             System.out.println("DOT file successfully saved at: " + dotFilePath);
