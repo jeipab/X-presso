@@ -179,8 +179,8 @@ public class SyntaxErrorHandler {
      * Enhanced error handlers with context tracking
      */
     public void handleUnexpectedToken(Token token, Token expected, int line, int column) {
-        String tokenValue = token != null ? token.getValue() : "null";
-        String expectedValue = expected != null ? expected.getValue() : "null";
+        String tokenValue = token != null ? token.getLexeme() : "null";
+        String expectedValue = expected != null ? expected.getLexeme() : "null";
         
         reportError(
                 ErrorType.UNEXPECTED_TOKEN,
