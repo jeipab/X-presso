@@ -98,6 +98,14 @@ public class SyntaxErrorHandler {
         this(true);
     }
 
+    public SyntaxErrorHandler(Parser parser) {
+        this.errors = new ArrayList<>();
+        this.immediateLogging = true;
+        this.contextStack = new Stack<>();
+        this.errorCount = 0;
+        this.parser = parser;
+    }
+
     public SyntaxErrorHandler(boolean immediateLogging) {
         this.errors = new ArrayList<>();
         this.immediateLogging = immediateLogging;

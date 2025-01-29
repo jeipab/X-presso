@@ -26,19 +26,23 @@ public class Parser {
         this.symbolTable = new SymbolTable();
         this.automaton = new ParserAutomaton();
         this.parseTree = new ParseTree(NonTerminal.SP_PROG);
-        this.errorHandler = new SyntaxErrorHandler();
+        this.errorHandler = new SyntaxErrorHandler(this);
     }
 
     public ParseTree parse() {
         try {
             parseProgram();
         } catch (Exception e) {
+            Token current = peek(); // Get the current token
+            int line = current != null ? current.getLine() : -1;
+            int column = current != null ? current.getColumn() : -1;
+
             errorHandler.reportError(
-                SyntaxErrorHandler.ErrorType.INVALID_SYNTAX_STRUCTURE,  // Error type
-                "Critical Parsing Error: " + e.getMessage(),            // Message
-                -1,                                                     // Line (unknown, use -1)
-                -1,                                                     // Column (unknown, use -1)
-                "Check the source code structure and syntax."           // Suggestion
+                SyntaxErrorHandler.ErrorType.INVALID_SYNTAX_STRUCTURE,
+                "Critical Parsing Error: " + e.getMessage(),
+                line, // Use actual line
+                column, // Use actual column
+                "Check the source code structure and syntax."
             );
         }
         return parseTree;
@@ -46,44 +50,44 @@ public class Parser {
 
     private void parseProgram() {
         automaton.pushState(NonTerminal.SP_PROG);
-        ParseTreeNode classNode = parseTree.addChild(NonTerminal.CLASS); // Fix: Use ParseTreeNode
-        parseClass((ParseTree.Node) classNode);
+        ParseTreeNode classNode = parseTree.addChild(NonTerminal.CLASS); 
+        parseClass(classNode);
     }
 
-    private void parseClass(ParseTree.Node parent) {
+    private void parseClass(ParseTreeNode parent) {
         automaton.transition(peek());
         Token className = expectIdentifier("Expected class name");
         symbolTable.enterScope(className.getLexeme());
         expect("{", "Expected '{' after class declaration");
-        ParseTree.Node classBodyNode = parent.addChild(NonTerminal.CLASS_BODY);
+        ParseTreeNode classBodyNode = parent.addChild(NonTerminal.CLASS_BODY);
         parseClassBody(classBodyNode);
         expect("}", "Expected '}' to close class definition");
     }
 
-    private void parseClassBody(ParseTree.Node parent) {
-        ParseTree.Node mainNode = parent.addChild(NonTerminal.SP_MAIN);
+    private void parseClassBody(ParseTreeNode parent) {
+        ParseTreeNode mainNode = parent.addChild(NonTerminal.SP_MAIN);
         parseMain(mainNode);
     }
 
-    private void parseMain(ParseTree.Node parent) {
+    private void parseMain(ParseTreeNode parent) {
         automaton.transition(peek());
         expect("(", "Expected '(' after main");
         expectIdentifier("Expected parameter inside main");
         expect(")", "Expected ')' to close main parameters");
         expect("{", "Expected '{' to start main block");
-        ParseTree.Node statementsNode = parent.addChild(NonTerminal.STATEMENTS);
+        ParseTreeNode statementsNode = parent.addChild(NonTerminal.STATEMENTS);
         parseStatements(statementsNode);
         expect("}", "Expected '}' to close main block");
     }
 
-    private void parseStatements(ParseTree.Node parent) {
+    private void parseStatements(ParseTreeNode parent) {
         while (!check("}")) {
-            ParseTree.Node statementNode = parent.addChild(NonTerminal.STATEMENT);
+            ParseTreeNode statementNode = parent.addChild(NonTerminal.STATEMENT);
             parseStatement(statementNode);
         }
     }
 
-    private void parseStatement(ParseTree.Node parent) {
+    private void parseStatement(ParseTreeNode parent) {
     Token currentToken = peek();
     NonTerminal currentState = automaton.getCurrentState();
 
@@ -106,27 +110,27 @@ public class Parser {
 }
 
 
-    private void parseDeclaration(ParseTree.Node parent) {
+    private void parseDeclaration(ParseTreeNode parent) {
         automaton.transition(peek());
         Token varType = advance();
         Token varName = expectIdentifier("Expected variable name");
         symbolTable.insert(varName.getLexeme(), varType.getLexeme());
         expect("=", "Expected '=' in declaration");
-        ParseTree.Node exprNode = parent.addChild(NonTerminal.EXPR);
+        ParseTreeNode exprNode = parent.addChild(NonTerminal.EXPR);
         parseExpression(exprNode);
         expect(";", "Expected ';' at the end of statement");
     }
 
-    private void parseAssignment(ParseTree.Node parent) {
+    private void parseAssignment(ParseTreeNode parent) {
         automaton.transition(peek());
         Token varName = expectIdentifier("Expected variable name");
         expect("=", "Expected '=' in assignment");
-        ParseTree.Node exprNode = parent.addChild(NonTerminal.EXPR);
+        ParseTreeNode exprNode = parent.addChild(NonTerminal.EXPR);
         parseExpression(exprNode);
         expect(";", "Expected ';' at the end of statement");
     }
 
-    private void parseInput(ParseTree.Node parent) {
+    private void parseInput(ParseTreeNode parent) {
         automaton.transition(peek());
         expect("STRICT", "Expected 'STRICT' keyword for input");
         expect("Input", "Expected 'Input'");
@@ -138,10 +142,10 @@ public class Parser {
         expect(";", "Expected ';' after input statement");
     }
 
-    private void parseConditional(ParseTree.Node parent) {
+    private void parseConditional(ParseTreeNode parent) {
         expect("if", "Expected 'if' keyword");
         expect("(", "Expected '(' before condition");
-        ParseTree.Node conditionNode = parent.addChild(NonTerminal.EXPR);
+        ParseTreeNode conditionNode = parent.addChild(NonTerminal.EXPR);
         parseExpression(conditionNode);
         expect(")", "Expected ')' after condition");
         expect("{", "Expected '{' before if block");
@@ -149,10 +153,10 @@ public class Parser {
         expect("}", "Expected '}' after if block");
     }
 
-    private void parseLoop(ParseTree.Node parent) {
+    private void parseLoop(ParseTreeNode parent) {
         expect("while", "Expected 'while' keyword");
         expect("(", "Expected '(' before loop condition");
-        ParseTree.Node conditionNode = parent.addChild(NonTerminal.EXPR);
+        ParseTreeNode conditionNode = parent.addChild(NonTerminal.EXPR);
         parseExpression(conditionNode);
         expect(")", "Expected ')' after loop condition");
         expect("{", "Expected '{' before loop block");
@@ -160,7 +164,7 @@ public class Parser {
         expect("}", "Expected '}' after loop block");
     }
 
-    private void parseFunction(ParseTree.Node parent) {
+    private void parseFunction(ParseTreeNode parent) {
         Token functionName = expectIdentifier("Expected function name");
         expect("(", "Expected '(' before function parameters");
         parseParameters(parent.addChild(NonTerminal.PARAMETERS));
@@ -170,19 +174,19 @@ public class Parser {
         expect("}", "Expected '}' after function body");
     }
 
-    private void parseOutput(ParseTree.Node parent) {
+    private void parseOutput(ParseTreeNode parent) {
         automaton.transition(peek());
         expect("Output", "Expected 'Output'");
         expect("::", "Expected '::' after Output");
         expect("print", "Expected 'print' function");
         expect("(", "Expected '(' before output content");
-        ParseTree.Node exprNode = parent.addChild(NonTerminal.EXPR);
+        ParseTreeNode exprNode = parent.addChild(NonTerminal.EXPR);
         parseExpression(exprNode);
         expect(")", "Expected ')' to close output");
         expect(";", "Expected ';' after output statement");
     }
 
-    private void parseExpression(ParseTree.Node parent) {
+    private void parseExpression(ParseTreeNode parent) {
         parsePrecedence(parent, 1); // Start with the lowest precedence level
     }
 
@@ -192,7 +196,7 @@ public class Parser {
             return;
         }
 
-        ParseTree.Node left = new ParseTree.Node(NonTerminal.EXPR);
+        ParseTreeNode left = new ParseTreeNode(NonTerminal.EXPR);
         parsePrecedence(left, precedence + 1); // Parse higher precedence expressions first
 
         while (true) {
@@ -239,13 +243,13 @@ public class Parser {
         }
     }
 
-    private void parseParameters(ParseTree.Node parent) {
+    private void parseParameters(ParseTreeNode parent) {
         if (check(")")) {
             return; // No parameters (empty parentheses)
         }
     
         do {
-            ParseTree.Node parameterNode = parent.addChild(NonTerminal.PARAMETER);
+            ParseTreeNode parameterNode = parent.addChild(NonTerminal.PARAMETER);
             parseParameter(parameterNode);
         } while (match(",")); // Continue parsing if there's a comma
     
@@ -255,7 +259,7 @@ public class Parser {
     /**
      * Parses a single parameter in a function declaration.
      */
-    private void parseParameter(ParseTree.Node parent) {
+    private void parseParameter(ParseTreeNode parent) {
         Token type = expectIdentifier("Expected parameter type");
         Token name = expectIdentifier("Expected parameter name");
     

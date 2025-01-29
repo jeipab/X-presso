@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import lexer.Lexer;
 import lexer.Token;
 import lexer.TokenType;
+import parser.core.ParseTree;
 import parser.core.Parser;
 import util.ErrorHandler;
 import util.SourceReader;
@@ -623,8 +624,30 @@ public class Main {
     private static void performSyntaxAnalysis(List<Token> tokens) {
         System.out.println("\nStarting Syntax Analysis...");
         System.out.println("==========================");
-
-        // Initialize parser with tokens from lexer
+    
+        // Define output directory
+        String dotFilePath = "C:\\Users\\Asus\\Documents\\GitHub\\X-presso\\ast\\parse_tree.dot";
+    
+        // Ensure the directory exists
+        File outputFile = new File(dotFilePath);
+        outputFile.getParentFile().mkdirs(); // Create "ast" folder if it doesn't exist
+    
+        // Initialize parser
         Parser parser = new Parser(tokens);
+        ParseTree parseTree = parser.parse();
+    
+        // Convert parse tree to Graphviz DOT format
+        String dotOutput = parseTree.toGraphviz();
+    
+        // Print DOT output to console for debugging
+        System.out.println(dotOutput);
+    
+        // Save the DOT output to a file
+        try (FileWriter writer = new FileWriter(dotFilePath)) {
+            writer.write(dotOutput);
+            System.out.println("DOT file successfully saved at: " + dotFilePath);
+        } catch (IOException e) {
+            System.err.println("Error saving DOT file: " + e.getMessage());
+        }
     }
 }
