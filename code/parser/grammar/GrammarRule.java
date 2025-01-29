@@ -440,12 +440,12 @@ public class GrammarRule {
 
         rules.put(NonTerminal.INT_LIT, List.of(
             List.of("0"),
-            List.of(NonTerminal.NON_ZERO, NonTerminal.DIGIT_STAR)
+            List.of(NonTerminal.NON_ZERO, NonTerminal.DIGIT)
         ));
 
         // Floating Point Literal (Float_Lit)
         rules.put(NonTerminal.FLOAT_LIT, List.of(
-            List.of(NonTerminal.INT_LIT, ".", NonTerminal.DIGIT, NonTerminal.DIGIT_STAR)
+            List.of(NonTerminal.INT_LIT, ".", NonTerminal.DIGIT, NonTerminal.DIGIT)
         ));
 
         // String Literal (Str_Lit)
@@ -511,7 +511,7 @@ public class GrammarRule {
         ));
 
         rules.put(NonTerminal.INSPECT_BLOCK, List.of(
-            List.of("inspect", "{", NonTerminal.STATEMENT, "*", "}")
+            List.of("inspect", "{", NonTerminal.STATEMENTS, "*", "}")
         ));
 
         rules.put(NonTerminal.DATE_FUNC, List.of(
@@ -575,7 +575,7 @@ public class GrammarRule {
         ));
 
         rules.put(NonTerminal.LAMBDA_BLOCK, List.of(
-            List.of(NonTerminal.IDENTIFIER, "->", "{", NonTerminal.STATEMENT, "*", "}")
+            List.of(NonTerminal.IDENTIFIER, "->", "{", NonTerminal.STATEMENTS, "*", "}")
         ));
 
         // Year, Month, and Day Production Rules
