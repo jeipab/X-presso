@@ -32,11 +32,19 @@ public class ParserAutomaton {
 
     // This function processes the current token against the top of the stack
     public boolean processToken(Token token) {
-        // Check if the token can start the production for the current state
-        if (GrammarRule.isValidStart(currentState, token.getLexeme())) {
-            return true; // Valid token for the current state
+        if (!GrammarRule.isValidStart(currentState, token.getLexeme())) {
+            // Check if the first token is valid for any next possible non-terminals
+            for (List<Object> production : GrammarRule.getProductions(currentState)) {
+                if (!production.isEmpty() && production.get(0) instanceof NonTerminal) {
+                    NonTerminal firstNonTerminal = (NonTerminal) production.get(0);
+                    if (GrammarRule.isValidStart(firstNonTerminal, token.getLexeme())) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
-        return false; // Invalid token for the current state
+        
     }
 
     // This function handles the actual state transition based on the token
@@ -75,12 +83,25 @@ public class ParserAutomaton {
             List<List<Object>> productions = GrammarRule.getProductions(nonTerminal);
 
             for (List<Object> production : productions) {
-                if (!production.isEmpty() && GrammarRule.isValidStart(nonTerminal, token.getLexeme())) {
-                    stateStack.pop();
-                    pushProduction(production);
-                    return;
+                if (!production.isEmpty()) {
+                    Object firstElement = production.get(0);
+            
+                    // If token matches exactly, transition normally
+                    if (firstElement.equals(token.getLexeme())) {
+                        stateStack.pop();
+                        pushProduction(production);
+                        return;
+                    }
+            
+                    // If first element is a NonTerminal, check its valid start symbols
+                    if (firstElement instanceof NonTerminal && GrammarRule.isValidStart((NonTerminal) firstElement, token.getLexeme())) {
+                        stateStack.pop();
+                        pushProduction(production);
+                        return;
+                    }
                 }
             }
+            
 
             syntaxErrorHandler.reportError(
                 SyntaxErrorHandler.ErrorType.UNEXPECTED_TOKEN,  // Error type
