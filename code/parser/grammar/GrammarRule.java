@@ -18,6 +18,7 @@ public class GrammarRule {
         // Comprehensive class declaration rules
         rules.put(NonTerminal.CLASS, List.of(
             // Full structure with optional components
+            
             List.of(NonTerminal.CLASS_MODS, "class", NonTerminal.IDENTIFIER, NonTerminal.CLASS_INHERIT, NonTerminal.INTERFACE_INHERIT, "{", NonTerminal.CLASS_BODY, "}"),
 
             // Without interface inheritance
@@ -101,7 +102,9 @@ public class GrammarRule {
 
         rules.put(NonTerminal.SP_MAIN, List.of(
             List.of("public", "static", "void", "main", "(", "str", "[", "]", "args", ")", "{", NonTerminal.STATEMENTS, "}"),
-            List.of("main", "(", "args", ")", "{", NonTerminal.STATEMENTS, "}")
+            List.of("main", "(", "args", ")", "{", NonTerminal.STATEMENTS, "}"),
+            List.of(NonTerminal.DEC_STATE, ";")
+
         ));
 
         // Method Declarations
@@ -213,8 +216,6 @@ public class GrammarRule {
             List.of("o"), List.of("p"), List.of("q"), List.of("r"), List.of("s"), List.of("t"), List.of("u"),
             List.of("v"), List.of("w"), List.of("x"), List.of("y"), List.of("z")
         ));
-
-
 
         rules.put(NonTerminal.DIGIT, List.of(
             List.of("0"),
@@ -560,7 +561,7 @@ public class GrammarRule {
 
         // For Loop Production Rule
         rules.put(NonTerminal.FOR_LOOP, List.of(
-            List.of("for", "(", NonTerminal.ASS_STATE, ";", NonTerminal.CONDITION, ";", NonTerminal.ASS_STATE, ")", "{", NonTerminal.STATEMENTS, "}")
+            List.of("for", "(", NonTerminal.ASS_STATE, ";", NonTerminal.CONDITION, ";", NonTerminal.EXPR, ")", "{", NonTerminal.STATEMENTS, "}")
         ));
 
         // While Loop Production Rule
