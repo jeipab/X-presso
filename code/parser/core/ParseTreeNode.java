@@ -1,16 +1,15 @@
 package parser.core;
-import lexer.*;
-import parser.grammar.*;
+
+import lexer.TokenType;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ParseTreeNode {
     private String value;
-    List<ParseTreeNode> children;
-    TokenType type; // TokenType could be an enum or class representing the token type
-    private NonTerminal nonTerminal; // NonTerminal type representing non-terminal symbols in the grammar
+    private List<ParseTreeNode> children;
+    private TokenType type;
     private ParseTreeNode parent;
-    
+
     public ParseTreeNode(String value, TokenType type) {
         this.value = value;
         this.type = type;
@@ -18,47 +17,30 @@ public class ParseTreeNode {
         this.parent = null;
     }
 
-    // Add a child node to the current node
     public void addChild(ParseTreeNode child) {
         children.add(child);
         child.setParent(this);
     }
 
-    // Remove a child node from the current node
-    public void removeChild(ParseTreeNode child) {
-        children.remove(child);
-        child.setParent(null);
-    }
-
-    // Set the parent node of this node
     private void setParent(ParseTreeNode parent) {
         this.parent = parent;
     }
 
-    // Get the parent of the current node
-    public ParseTreeNode getParent() {
-        return parent;
+    public List<ParseTreeNode> getChildren() {
+        return children;
     }
 
-    // Traverse the tree in pre-order (root -> left -> right)
-    public void traversePreOrder() {
-        System.out.println(this);
-        for (ParseTreeNode child : children) {
-            child.traversePreOrder();
-        }
+    public String getValue() {
+        return value;
     }
 
-    // Traverse the tree in post-order (left -> right -> root)
-    public void traversePostOrder() {
-        for (ParseTreeNode child : children) {
-            child.traversePostOrder();
-        }
-        System.out.println(this);
+    // Overridden method to support serialization to JSON
+    public List<ParseTreeNode> getChildrenForJson() {
+        return children;
     }
 
-    // Convert node to string representation (for visualization)
     @Override
     public String toString() {
-        return "Node[value=" + value + ", type=" + type + "]";
+        return value;
     }
 }

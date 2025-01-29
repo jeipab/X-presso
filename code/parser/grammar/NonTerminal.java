@@ -58,6 +58,7 @@ public enum NonTerminal {
     PREFIX_OP,
     POSTFIX_OP,
     UNARY_OP,
+    BINARY_OP,
     TERNARY_OP,
     METHOD_OP,
 
@@ -88,7 +89,7 @@ public enum NonTerminal {
     KEYWORD,
     RESERVED,
 
-    // Expressions & Blocks
+    // FUNCTION
     FILTER_EXPR,
     VALIDATE_EXPR,
     INSPECT_BLOCK,
@@ -133,6 +134,8 @@ public enum NonTerminal {
     WHILE_LOOP,
     DO_WHILE_LOOP,
     ENHANCED_FOR;
+
+
 
 
      private final Set<TokenType> firstSet = new HashSet<>();
