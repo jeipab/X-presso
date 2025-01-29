@@ -3,12 +3,16 @@ package parser.core;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import parser.grammar.NonTerminal;
 
 public class ParseTree {
     private final ParseTreeNode root;
+    private List<ParseTreeNode> children = new ArrayList<>();
+
 
     public ParseTree(NonTerminal rootType) {
         this.root = new ParseTreeNode(rootType);
@@ -19,7 +23,9 @@ public class ParseTree {
     }
 
     public ParseTreeNode addChild(NonTerminal type) {
-        return root.addChild(type);
+        ParseTreeNode child = new ParseTreeNode(type);
+        this.children.add(child);
+        return child;
     }
 
     public ParseTreeNode addChild(String value) {
@@ -33,12 +39,6 @@ public class ParseTree {
 
         public Node(NonTerminal expr) {
             super(expr.name(), null);
-        }
-
-        @Override
-        public Node addChild(NonTerminal type) {
-            ParseTreeNode child = super.addChild(type);
-            return new Node(child.getValue());
         }
     }
 
@@ -101,39 +101,3 @@ public class ParseTree {
     }
     
 }
-
-/*
-import parser.grammar.NonTerminal;
-public class ParseTree {
-     private final Node root;
- 
-     public ParseTree(NonTerminal spProg) {
-         this.root = new Node(NonTerminal.SP_PROG.name()); // Root is always "SP_PROG"
-     }
- 
-     public Node getRoot() {
-         return root;
-     }
- 
-     public Node addChild(NonTerminal type) {
-         Node child = new Node(type.name());
-         root.addChild(child);  // Always adds children to the root, but doesn't replace it
-         return child;
-     }
- 
-     // Define Node as an inner class to match Parser.java expectations
-     public static class Node extends ParseTreeNode {
-         public Node(String value) {
-             super(value, null); // Pass null for TokenType since it's not explicitly used
-         }
- 
-         public Node addChild(NonTerminal type) {
-             Node child = new Node(type.name());
-             super.addChild(child);
-             return child;
-         }
-     }
- }
- 
-
- */
