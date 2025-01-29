@@ -450,7 +450,7 @@ public class GrammarRule {
 
         // String Literal (Str_Lit)
         rules.put(NonTerminal.STR_LIT, List.of(
-            List.of("\"", NonTerminal.CHARACTER_STAR, "\"")
+            List.of("\"", NonTerminal.CHARACTER, "\"")
         ));
 
         // Char Literal (Char_Lit)
