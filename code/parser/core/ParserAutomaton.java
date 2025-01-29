@@ -26,11 +26,11 @@ public class ParserAutomaton {
     public void popState(ParseTreeNode parent) {
         if (!stateStack.isEmpty()) {
             NonTerminal top = stateStack.peek();
-            System.out.println("Popped state: " + top);
     
-            // ✅ Ensure that only fully processed rules are popped
             if (isProductionComplete(parent)) {
+                System.out.println("Popped state: " + top);
                 stateStack.pop();
+    
                 if (parent != null && parent.getParent() != null) {
                     parent = parent.getParent();
                 }
@@ -39,91 +39,79 @@ public class ParserAutomaton {
     }
 
     public boolean processToken(Token token) {
-        while (!isStackEmpty()) {
-            NonTerminal currentState = getCurrentState();
-            System.out.println("Processing token: " + token.getLexeme() + " in state: " + currentState);
-    
-            if (currentState == null) {
-                return false;
-            }
-    
-            List<List<Object>> productions = GrammarRule.getProductions(currentState);
-    
-            for (List<Object> production : productions) {
-                if (!production.isEmpty()) {
-                    Object firstElement = production.get(0);
-    
-                    if (firstElement instanceof NonTerminal) {
-                        expandNonTerminal(currentState, production);
-                        return true;
-                    } else if (firstElement instanceof String) {
-                        // If it's a terminal, it must match the token lexeme
-                        return transition(token, null);
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    public boolean transition(Token token, ParseTreeNode parent) {
         if (isStackEmpty()) {
             return false;
         }
     
         NonTerminal currentState = getCurrentState();
+        System.out.println("Processing token: " + token.getLexeme() + " in state: " + currentState);
+    
+        if (currentState == null) {
+            return false;
+        }
+    
         List<List<Object>> productions = GrammarRule.getProductions(currentState);
     
-        // Try each production for the current state
+        for (List<Object> production : productions) {
+            if (!production.isEmpty()) {
+                Object firstElement = production.get(0);
+    
+                if (firstElement instanceof NonTerminal) {
+                    expandNonTerminal(currentState, production);
+                    return true;
+                } else if (firstElement instanceof String) {
+                    // If it's a terminal, it must match the token lexeme
+                    if (((String) firstElement).equals(token.getLexeme())) {
+                        return transition(token, null);
+                    }
+                }
+            }
+        }
+    
+        // If no valid transition is found, return false
+        return false;
+    }
+
+    public boolean transition(Token token, ParseTreeNode parent) {
+        if (isStackEmpty()) return false;
+    
+        NonTerminal currentState = getCurrentState();
+        List<List<Object>> productions = GrammarRule.getProductions(currentState);
+    
         for (List<Object> production : productions) {
             if (!production.isEmpty()) {
                 Object firstElement = production.get(0);
     
                 if (firstElement instanceof String) { 
-                    // If it's a terminal, check if it matches the current token
                     String terminal = (String) firstElement;
                     if (terminal.equals(token.getLexeme())) {
                         System.out.println("Matched terminal: " + terminal + " with token: " + token.getLexeme());
-                        
-                        // Pop the current state after matching the terminal
+    
+                        // ✅ Ensure correct stack cleanup before resetting state
+                        System.out.println("Popping state: " + parent);
                         popState(parent);
                         if (parent != null) {
                             parent.addChild(token.getLexeme());
+                            System.out.println("Added token to parent: " + token.getLexeme());
                         }
     
-                        // Move to the next state in the production
-                        if (production.size() > 1) {
-                            Object nextElement = production.get(1);
-                            if (nextElement instanceof NonTerminal) {
-                                pushState((NonTerminal) nextElement);
-                            } else if (nextElement instanceof String) {
-                                System.out.println("Next terminal in production: " + nextElement + ", will match in next transition");
-                            }
-                        } else {
-                            // If this is the last element in the production, transition back to the parent state
-                            if (!stateStack.isEmpty()) {
-                                NonTerminal parentState = stateStack.peek();
-                                System.out.println("Transitioning back to parent state: " + parentState);
-                            }
+                        // ✅ Reset state only if stack is empty
+                        if (isStackEmpty()) {
+                            pushState(NonTerminal.SP_PROG);
                         }
     
                         return true;
-                    } else {
-                        System.out.println("Terminal " + terminal + " did not match token: " + token.getLexeme() + ", trying next production");
                     }
                 } else if (firstElement instanceof NonTerminal) {
-                    // If it's a non-terminal, expand it and try again
-                    System.out.println("Expanding non-terminal: " + firstElement);
                     expandNonTerminal(currentState, production);
                     return transition(token, parent);
                 }
             }
         }
     
-        // If no production matches, report an error
-        System.out.println("No matching production for token: " + token.getLexeme() + " in state: " + currentState);
         return false;
     }
+    
 
     private void expandNonTerminal(NonTerminal nonTerminal, List<Object> production) {
         System.out.println("Expanding " + nonTerminal + " with production: " + production);
@@ -157,7 +145,7 @@ public class ParserAutomaton {
             return true;  // If it's not a NonTerminal, assume it's a terminal and is complete
         }
     
-        // ✅ Get expected children from the grammar
+        // Get expected children from the grammar
         List<List<Object>> productions = GrammarRule.getProductions(nodeType);
         int expectedChildren = productions.size(); // Expected number of productions
     

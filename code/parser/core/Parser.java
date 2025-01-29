@@ -33,15 +33,16 @@ public class Parser {
         try {
             // Initialize parsing by pushing the start symbol
             automaton.pushState(NonTerminal.SP_PROG);
-            
+    
             while (!automaton.isStackEmpty() && !atEnd()) {
                 Token currentToken = peek();
-                
+    
                 // Process the current token through the automaton
                 if (automaton.processToken(currentToken)) {
                     // If token is valid for current state, perform transition
                     if (automaton.transition(currentToken, rootNode)) {
                         advance(); // Only advance if a terminal was consumed
+                        if (atEnd()) break;
                     }
                 } else {
                     // Handle syntax error
@@ -52,7 +53,8 @@ public class Parser {
                         currentToken.getColumn(),
                         "Check syntax at this position"
                     );
-                    // Skip the problematic token and continue parsing
+    
+                    automaton.popState(rootNode);
                     advance();
                 }
             }
