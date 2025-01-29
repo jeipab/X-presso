@@ -148,6 +148,8 @@ public class SyntaxErrorHandler {
             case INSERT_TOKEN -> {
             }
             case PANIC_MODE -> synchronize();
+
+            default -> throw new IllegalArgumentException("Unexpected value: " + strategy);
         }
         // Implementation for skipping token
         // Implementation for inserting missing token
