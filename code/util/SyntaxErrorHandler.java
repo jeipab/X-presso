@@ -2,163 +2,320 @@ package util;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
+import lexer.Token;
+
+
 
 public class SyntaxErrorHandler {
     private final List<SyntaxError> errors;
+    private String currentFile;
     private final boolean immediateLogging;
-    
+    private final Stack<String> contextStack; // Tracks parsing context
+    private static final int MAX_ERRORS = 25; // Prevent infinite error cascading
+    private int errorCount;
+
+    /**
+     * Represents different types of syntactic errors that can occur.
+     */
     public enum ErrorType {
         UNEXPECTED_TOKEN,
-        MISSING_SEMICOLON,
-        MISSING_PARENTHESIS,
-        MISSING_BRACE,
-        MISSING_BRACKET,
-        INVALID_EXPRESSION,
+        MISSING_TOKEN,
+        UNMATCHED_DELIMITER,
+        INVALID_SYNTAX_STRUCTURE,
+        EMPTY_RULE,
+        END_OF_INPUT_UNEXPECTED,
+        INVALID_GRAMMAR_RULE,
+        MISMATCHED_PARENTHESIS,
         INVALID_STATEMENT,
-        MISSING_IDENTIFIER,
-        MISSING_OPERATOR,
-        INVALID_DECLARATION,
-        DUPLICATE_DECLARATION,
-        MISSING_RETURN_STATEMENT
+        SYNTAX_AMBIGUITY
     }
+
+      private enum RecoveryStrategy {
+        SKIP_TOKEN,        // Skip the problematic token
+        INSERT_TOKEN,      // Insert missing token
+        DELETE_TOKEN,      // Delete unexpected token
+        PANIC_MODE        // Skip until synchronization point
+    }
+
 
     public static class SyntaxError {
         private final ErrorType type;
         private final String message;
         private final int line;
         private final int column;
-        private final String expected;
-        private final String found;
         private final String suggestion;
+        private final String context;
 
-        public SyntaxError(ErrorType type, String message, int line, int column, 
-                         String expected, String found, String suggestion) {
+        public SyntaxError(ErrorType type, String message, int line, int column, String suggestion, String context) {
             this.type = type;
             this.message = message;
             this.line = line;
             this.column = column;
-            this.expected = expected;
-            this.found = found;
             this.suggestion = suggestion;
+            this.context = context;
         }
 
+        public ErrorType getType() {
+            return type;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public int getLine() {
+            return line;
+        }
+
+        public int getColumn() {
+            return column;
+        }
+
+        public String getSuggestion() {
+            return suggestion;
+        }
+
+         public String getContext() {
+            return context;
+        }
         @Override
         public String toString() {
             StringBuilder error = new StringBuilder();
-            error.append(String.format("Syntax Error at line %d, column %d: %s%n", line, column, type));
+            error.append(String.format("Error at line %d, column %d: %s%n", line, column, type));
             error.append(String.format("Description: %s%n", message));
-            if (expected != null) {
-                error.append(String.format("Expected: %s%n", expected));
-            }
-            if (found != null) {
-                error.append(String.format("Found: %s%n", found));
-            }
-            if (suggestion != null) {
+            if (suggestion != null && !suggestion.isEmpty()) {
                 error.append(String.format("Suggestion: %s%n", suggestion));
+            }
+             if (context != null && !context.isEmpty()) {
+                error.append(String.format("Context: %s%n", context));
             }
             return error.toString();
         }
     }
 
-    public SyntaxErrorHandler(boolean immediateLogging) {
-        this.errors = new ArrayList<>();
-        this.immediateLogging = immediateLogging;
+    public SyntaxErrorHandler() {
+        this(true);
     }
 
-    public void reportError(ErrorType type, String message, int line, int column,
-                          String expected, String found, String suggestion) {
-        SyntaxError error = new SyntaxError(type, message, line, column, expected, found, suggestion);
+   public SyntaxErrorHandler(boolean immediateLogging) {
+        this.errors = new ArrayList<>();
+        this.immediateLogging = immediateLogging;
+        this.contextStack = new Stack<>();
+        this.errorCount = 0;
+    }
+
+    /**
+     * Records a syntactic error with optional recovery suggestion.
+     */
+    public void reportError(ErrorType type, String message, int line, int column, String suggestion) {
+      if (errorCount >= MAX_ERRORS) {
+            throw new RuntimeException("Maximum error limit reached. Stopping parsing.");
+        }
+
+        String context = contextStack.isEmpty() ? "" : contextStack.peek();
+        SyntaxError error = new SyntaxError(type, message, line, column, suggestion, context);
         errors.add(error);
-        
+        errorCount++;
+
         if (immediateLogging) {
             System.err.println(error);
         }
+  // Apply recovery strategy
+        RecoveryStrategy strategy = determineRecoveryStrategy(type);
+        applyRecoveryStrategy(strategy);
     }
 
-    public void handleUnexpectedToken(String expected, String found, int line, int column) {
-        reportError(
+    /**
+     * Determines appropriate recovery strategy based on error type
+     */
+    private RecoveryStrategy determineRecoveryStrategy(ErrorType type) {
+        return switch (type) {
+            case UNEXPECTED_TOKEN -> RecoveryStrategy.SKIP_TOKEN;
+            case MISSING_TOKEN -> RecoveryStrategy.INSERT_TOKEN;
+            case UNMATCHED_DELIMITER, INVALID_SYNTAX_STRUCTURE -> RecoveryStrategy.PANIC_MODE;
+            default -> RecoveryStrategy.SKIP_TOKEN;
+        };
+    }
+
+    /**
+     * Applies the selected recovery strategy
+     */
+    private void applyRecoveryStrategy(RecoveryStrategy strategy) {
+        switch (strategy) {
+            case SKIP_TOKEN -> {
+            }
+            case INSERT_TOKEN -> {
+            }
+            case PANIC_MODE -> synchronize();
+        }
+        // Implementation for skipping token
+        // Implementation for inserting missing token
+            }
+
+    /**
+     * Synchronizes the parser state by skipping tokens until a safe point
+     */
+    private void synchronize() {
+        // Implementation for synchronization point recovery
+        // This would typically skip tokens until a statement boundary
+    }
+
+    /**
+     * Pushes a new context onto the context stack
+     */
+    public void pushContext(String context) {
+        contextStack.push(context);
+    }
+
+    /**
+     * Pops the current context from the stack
+     */
+    public String popContext() {
+        return contextStack.isEmpty() ? "" : contextStack.pop();
+    }
+
+    /**
+     * Enhanced error handlers with context tracking
+     */
+   public void handleUnexpectedToken(Token token, Token expected, int line, int column) {
+    String tokenValue = token != null ? token.getValue() : "null";
+    String expectedValue = expected != null ? expected.getValue() : "null";
+    
+    reportError(
             ErrorType.UNEXPECTED_TOKEN,
-            "Unexpected token encountered during parsing",
+            String.format("Unexpected token: '%s'. Expected: %s", 
+                         tokenValue, expectedValue),
             line,
             column,
-            expected,
-            found,
-            String.format("Replace '%s' with '%s'", found, expected)
+            "Verify the input and ensure the token matches the expected grammar"
+        );
+    }
+    /**
+     * Handles missing token errors.
+     */
+
+   public void handleMissingToken(String expected, int line, int column) {
+        reportError(
+            ErrorType.MISSING_TOKEN,
+            String.format("Missing token: '%s'", expected),
+            line,
+            column,
+            "Add the missing token to complete the syntax structure"
         );
     }
 
-    public void handleMissingSemicolon(int line, int column) {
+
+    /**
+     * Handles unmatched delimiter errors.
+     */
+    public void handleUnmatchedDelimiter(String delimiter, int line, int column) {
         reportError(
-            ErrorType.MISSING_SEMICOLON,
-            "Missing semicolon at end of statement",
+            ErrorType.UNMATCHED_DELIMITER,
+            String.format("Unmatched delimiter: '%s'", delimiter),
             line,
             column,
-            ";",
-            "",
-            "Add a semicolon to terminate the statement"
+            "Ensure all opening and closing delimiters are properly matched"
         );
     }
 
-    public void handleMissingParenthesis(boolean isOpening, int line, int column) {
-        String expected = isOpening ? "(" : ")";
+    /**
+     * Handles invalid syntax structure errors.
+     */
+    public void handleInvalidSyntaxStructure(String structure, int line, int column) {
         reportError(
-            ErrorType.MISSING_PARENTHESIS,
-            String.format("Missing %s parenthesis", isOpening ? "opening" : "closing"),
+            ErrorType.INVALID_SYNTAX_STRUCTURE,
+            String.format("Invalid syntax structure: '%s'", structure),
             line,
             column,
-            expected,
-            "",
-            String.format("Add %s parenthesis", isOpening ? "opening" : "closing")
+            "Check the grammar rules for the correct structure"
         );
     }
 
-    public void handleMissingBrace(boolean isOpening, int line, int column) {
-        String expected = isOpening ? "{" : "}";
+    /**
+     * Handles end-of-input unexpected errors.
+     */
+    public void handleUnexpectedEndOfInput(int line, int column) {
         reportError(
-            ErrorType.MISSING_BRACE,
-            String.format("Missing %s brace", isOpening ? "opening" : "closing"),
+            ErrorType.END_OF_INPUT_UNEXPECTED,
+            "Unexpected end of input encountered",
             line,
             column,
-            expected,
-            "",
-            String.format("Add %s brace", isOpening ? "opening" : "closing")
+            "Ensure all constructs are properly closed or completed"
         );
     }
 
-    public void handleInvalidExpression(String expression, int line, int column) {
-        reportError(
-            ErrorType.INVALID_EXPRESSION,
-            "Invalid expression syntax",
-            line,
-            column,
-            "valid expression",
-            expression,
-            "Check expression syntax and operator precedence"
-        );
+    /**
+     * Returns all recorded errors.
+     */
+
+    public String getErrorStatistics() {
+        if (errors.isEmpty()) {
+            return "No errors found.";
+        }
+
+        StringBuilder stats = new StringBuilder();
+        stats.append(String.format("Total errors: %d%n", errors.size()));
+        
+        // Count errors by type
+        java.util.Map<ErrorType, Integer> errorCounts = new java.util.HashMap<>();
+        for (SyntaxError error : errors) {
+            errorCounts.merge(error.getType(), 1, Integer::sum);
+        }
+
+        stats.append("Error breakdown:\n");
+        errorCounts.forEach((type, count) -> 
+            stats.append(String.format("- %s: %d%n", type, count)));
+
+        return stats.toString();
     }
 
     public List<SyntaxError> getErrors() {
         return new ArrayList<>(errors);
     }
 
+    /**
+     * Returns whether any errors have been recorded.
+     */
     public boolean hasErrors() {
         return !errors.isEmpty();
     }
 
+    /**
+     * Prints all recorded errors.
+     */
     public void printErrors() {
         if (errors.isEmpty()) {
-            System.out.println("No syntax errors found.");
+            System.out.println("No syntactic errors found.");
             return;
         }
 
-        System.err.println("\nSyntax Errors:");
+        System.err.println("\nSyntactic Errors:");
         for (SyntaxError error : errors) {
             System.err.println(error);
         }
     }
 
+    /**
+     * Clears all recorded errors.
+     */
     public void clearErrors() {
         errors.clear();
     }
+
+    /**
+     * Sets the current file being processed.
+     */
+    public void setCurrentFile(String filename) {
+        this.currentFile = filename;
+    }
+
+    /**
+     * Gets the current file being processed.
+     */
+    public String getCurrentFile() {
+        return this.currentFile;
+    }
 }
+
 
