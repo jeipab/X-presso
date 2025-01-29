@@ -1,39 +1,64 @@
 package parser.core;
-
+import lexer.*;
+import parser.grammar.*;
 import java.util.ArrayList;
 import java.util.List;
 
-// Represents a node in the parse tree
-class ParseTreeNode {
-    private String value; // Can be terminal or non-terminal
-    private boolean isTerminal; // Identifies if it's a terminal
-    private List<ParseTreeNode> children;
+public class ParseTreeNode {
+    private String value;
+    List<ParseTreeNode> children;
+    TokenType type; // TokenType could be an enum or class representing the token type
+    private NonTerminal nonTerminal; // NonTerminal type representing non-terminal symbols in the grammar
     private ParseTreeNode parent;
-
-    public ParseTreeNode(String value, boolean isTerminal) {
+    
+    public ParseTreeNode(String value, TokenType type) {
         this.value = value;
-        this.isTerminal = isTerminal;
+        this.type = type;
         this.children = new ArrayList<>();
+        this.parent = null;
     }
 
+    // Add a child node to the current node
     public void addChild(ParseTreeNode child) {
         children.add(child);
         child.setParent(this);
     }
 
+    // Remove a child node from the current node
+    public void removeChild(ParseTreeNode child) {
+        children.remove(child);
+        child.setParent(null);
+    }
+
+    // Set the parent node of this node
     private void setParent(ParseTreeNode parent) {
         this.parent = parent;
     }
 
-    public List<ParseTreeNode> getChildren() {
-        return children;
+    // Get the parent of the current node
+    public ParseTreeNode getParent() {
+        return parent;
     }
 
-    public String getValue() {
-        return value;
+    // Traverse the tree in pre-order (root -> left -> right)
+    public void traversePreOrder() {
+        System.out.println(this);
+        for (ParseTreeNode child : children) {
+            child.traversePreOrder();
+        }
     }
 
-    public boolean isTerminal() {
-        return isTerminal;
+    // Traverse the tree in post-order (left -> right -> root)
+    public void traversePostOrder() {
+        for (ParseTreeNode child : children) {
+            child.traversePostOrder();
+        }
+        System.out.println(this);
+    }
+
+    // Convert node to string representation (for visualization)
+    @Override
+    public String toString() {
+        return "Node[value=" + value + ", type=" + type + "]";
     }
 }

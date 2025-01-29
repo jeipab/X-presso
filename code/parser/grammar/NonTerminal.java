@@ -136,25 +136,25 @@ public enum NonTerminal {
 
 
      private final Set<TokenType> firstSet = new HashSet<>();
-    private final Set<TokenType> followSet = new HashSet<>();
+     private final Set<TokenType> followSet = new HashSet<>();
 
-    // **Method to define First Set**
-    public void addFirst(TokenType... tokens) {
-        firstSet.addAll(Arrays.asList(tokens));
-    }
+     // **Method to define First Set**
+     public void addFirst(TokenType... tokens) {
+          firstSet.addAll(Arrays.asList(tokens));
+     }
 
-    // **Method to define Follow Set**
-    public void addFollow(TokenType... tokens) {
-        followSet.addAll(Arrays.asList(tokens));
-    }
+     // **Method to define Follow Set**
+     public void addFollow(TokenType... tokens) {
+          followSet.addAll(Arrays.asList(tokens));
+     }
 
-    // **Get FIRST Set**
-    public Set<TokenType> getFirst() {
-        return firstSet;
-    }
+     // **Get FIRST Set**
+     public Set<TokenType> getFirst() {
+          return firstSet;
+     }
 
-    // **Get FOLLOW Set**
-    public Set<TokenType> getFollow() {
-        return followSet;
-    }
+     // **Get FOLLOW Set**
+     public Set<TokenType> getFollow() {
+          return followSet;
+     }
 }
