@@ -112,20 +112,24 @@ public class ParserAutomaton {
     private boolean handleNonTerminalTransition(NonTerminal nonTerminal, Token token) {
         List<List<Object>> productions = GrammarRule.getProductions(nonTerminal);
         if (productions == null) return false;
-
-        // Try each production
+    
         for (List<Object> production : productions) {
             if (production.isEmpty()) {
-                // Handle epsilon productions
-                continue;
+                continue; // Handle epsilon (empty) productions
             }
-
+    
             if (isValidProduction(production, token, new HashSet<>())) {
                 pushProduction(production);
                 return true;
             }
         }
-
+    
+        // ✅ Allow FIELD in CLASS_BODY if encountering a data type
+        if (nonTerminal == NonTerminal.CLASS_BODY && isPartOf(NonTerminal.FIELD, token)) {
+            pushProduction(List.of(NonTerminal.FIELD));
+            return true;
+        }
+    
         return false;
     }
 
@@ -169,4 +173,16 @@ public class ParserAutomaton {
     public NonTerminal getCurrentState() {
         return currentState;
     }
+
+    /**
+     * Checks if the given token matches the FIRST set of a NonTerminal.
+     * @param nonTerminal The NonTerminal category to check.
+     * @param token The token to validate.
+     * @return true if the token belongs to the NonTerminal's FIRST set, false otherwise.
+     */
+    public boolean isPartOf(NonTerminal nonTerminal, Token token) {
+        if (token == null) return false;
+        return nonTerminal.getFirst().contains(token.getType());
+    }
+
 }

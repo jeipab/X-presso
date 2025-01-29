@@ -1,7 +1,6 @@
 package parser.core;
 
 import lexer.Token;
-import lexer.TokenType;
 import parser.grammar.NonTerminal;
 import parser.grammar.GrammarRule;
 import parser.symbol.SymbolTable;
@@ -121,8 +120,80 @@ public class Parser {
     }
 
     private void parseClassBody(ParseTreeNode parent) {
-        ParseTreeNode mainNode = parent.addChild(NonTerminal.SP_MAIN);
-        parseMain(mainNode);
+        while (!check("}")) {
+            Token current = peek();
+    
+            if (automaton.isPartOf(NonTerminal.FIELD, current)) {  // ✅ Check if it's a field
+                ParseTreeNode fieldNode = parent.addChild(NonTerminal.FIELD);
+                parseField(fieldNode);
+            } else if (automaton.isPartOf(NonTerminal.SP_METHOD, current)) {  // ✅ Check if it's a method
+                ParseTreeNode methodNode = parent.addChild(NonTerminal.SP_METHOD);
+                parseMethod(methodNode);
+            } else if (automaton.isPartOf(NonTerminal.SP_MAIN, current)) {  // ✅ Check if it's the main method
+                ParseTreeNode mainNode = parent.addChild(NonTerminal.SP_MAIN);
+                parseMain(mainNode);
+            } else {
+                errorHandler.handleUnexpectedToken(current, null, current.getLine(), current.getColumn());
+                advance();
+            }
+        }
+    }    
+
+    private void parseField(ParseTreeNode parent) {
+        automaton.transition(peek());
+        Token varType = expectDataType("Expected a data type for field declaration");
+        Token varName = expectIdentifier("Expected a field name");
+    
+        symbolTable.insert(varName.getLexeme(), varType.getLexeme());
+    
+        if (match("=")) { // If assignment is present
+            ParseTreeNode exprNode = parent.addChild(NonTerminal.EXPR);
+            parseExpression(exprNode);
+        }
+    
+        expect(";", "Expected ';' at the end of the field declaration");
+    }
+    
+    /**
+     * Parses method declarations inside a class.
+     */
+    private void parseMethod(ParseTreeNode parent) {
+        automaton.transition(peek());
+    
+        // Parse access and non-access modifiers (if present)
+        while (isPartOf(NonTerminal.CLASS_MODS, peek())) {
+            parseClassModifiers();
+        }
+    
+        Token returnType = expectDataType("Expected return type for method declaration");
+        Token methodName = expectIdentifier("Expected method name");
+    
+        symbolTable.insert(methodName.getLexeme(), returnType.getLexeme());
+    
+        expect("(", "Expected '(' before method parameters");
+        ParseTreeNode parametersNode = parent.addChild(NonTerminal.PARAMETERS);
+        parseParameters(parametersNode);
+        expect(")", "Expected ')' after method parameters");
+    
+        expect("{", "Expected '{' before method body");
+        ParseTreeNode statementsNode = parent.addChild(NonTerminal.STATEMENTS);
+        parseStatements(statementsNode);
+        expect("}", "Expected '}' after method body");
+    }
+
+    /**
+     * Ensures the next token is a valid data type and advances the parser.
+     * @param errorMessage The error message to display if the token is not a valid data type.
+     * @return The token corresponding to the data type.
+     */
+    private Token expectDataType(String errorMessage) {
+        Token token = peek();
+        if (isPartOf(NonTerminal.DATA_TYPE, token)) {
+            return advance(); // Consume and return the data type token
+        } else {
+            errorHandler.handleUnexpectedToken(token, null, token.getLine(), token.getColumn());
+            throw new RuntimeException(errorMessage); // Stop parsing if invalid
+        }
     }
 
     private void parseMain(ParseTreeNode parent) {

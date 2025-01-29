@@ -56,22 +56,23 @@ public class ParseTree {
 
     private void toGraphvizRecursive(ParseTreeNode node, StringBuilder sb, AtomicInteger nodeId) {
         if (node == null) return;
-
+    
         int currentNodeId = nodeId.getAndIncrement();
         String nodeLabel = escapeGraphvizLabel(node.getValue());
-
+    
         sb.append(String.format("    node_%d [label=\"%s\"];\n", currentNodeId, nodeLabel));
-
+    
         for (ParseTreeNode child : node.getChildren()) {
             int childNodeId = nodeId.getAndIncrement();
             String childLabel = escapeGraphvizLabel(child.getValue());
-
+    
             sb.append(String.format("    node_%d [label=\"%s\"];\n", childNodeId, childLabel));
-            sb.append(String.format("    node_%d -> node_%d;\n", currentNodeId, childNodeId));
-
+            sb.append(String.format("    node_%d -> node_%d;\n", currentNodeId, childNodeId)); // ✅ Ensure correct connections
+    
             toGraphvizRecursive(child, sb, nodeId);
         }
     }
+    
 
     private String escapeGraphvizLabel(String label) {
         if (label == null) return "NULL";
