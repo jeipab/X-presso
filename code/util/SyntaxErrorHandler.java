@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Stack;
 import lexer.Token;
 
-
-
 public class SyntaxErrorHandler {
     private final List<SyntaxError> errors;
     private String currentFile;
