@@ -42,7 +42,13 @@ public class ParserAutomaton {
     // This function handles the actual state transition based on the token
     public void transition(Token token) {
         if (stateStack.isEmpty()) {
-            syntaxErrorHandler.reportError("Unexpected token '" + token.getLexeme() + "' at end of input.");
+            syntaxErrorHandler.reportError(
+                SyntaxErrorHandler.ErrorType.UNEXPECTED_TOKEN,  // Error type
+                "Unexpected token '" + token.getLexeme() + "' at end of input.", // Message
+                token.getLine(),  // Line number
+                token.getColumn(),  // Column number
+                "Check for missing tokens or incorrect syntax." // Suggestion
+            );
             return;
         }
 
@@ -53,7 +59,13 @@ public class ParserAutomaton {
             if (top.equals(token.getLexeme())) {
                 stateStack.pop(); // Consume terminal
             } else {
-                syntaxErrorHandler.reportError("Syntax error: Expected '" + top + "', found '" + token.getLexeme() + "'.");
+                syntaxErrorHandler.reportError(
+                    SyntaxErrorHandler.ErrorType.UNEXPECTED_TOKEN,  // Error type
+                    "Syntax error: Expected '" + top + "', found '" + token.getLexeme() + "'.", // Error message
+                    token.getLine(),  // Line number
+                    token.getColumn(),  // Column number
+                    "Check for missing or incorrect syntax structure." // Suggestion
+                );
             }
             return;
         }
@@ -72,8 +84,12 @@ public class ParserAutomaton {
             }
 
             syntaxErrorHandler.reportError(
+                SyntaxErrorHandler.ErrorType.UNEXPECTED_TOKEN,  // Error type
                 "Unexpected token '" + token.getLexeme() + "' in state " + nonTerminal +
-                ". Expected one of: " + getExpectedTokens(productions)
+                ". Expected one of: " + getExpectedTokens(productions), // Error message
+                token.getLine(),  // Line number
+                token.getColumn(),  // Column number
+                "Check if the token is misplaced or if a different syntax is required." // Suggestion
             );
         }
     }

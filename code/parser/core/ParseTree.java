@@ -27,7 +27,7 @@ public class ParseTree {
         }
 
         public Node(NonTerminal expr) {
-            //TODO Auto-generated constructor stub
+            super(expr.name(), null);
         }
 
         @Override
