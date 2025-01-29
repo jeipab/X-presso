@@ -1,7 +1,6 @@
 package parser.core;
 
 import lexer.Token;
-import parser.tree.ParseTree;
 import parser.grammar.NonTerminal;
 import parser.grammar.GrammarRule;
 import parser.symbol.SymbolTable;
@@ -85,28 +84,28 @@ public class Parser {
         }
 
         switch (automaton.getCurrentState()) {
-            case DECLARATION:
+            case "DECLARATION":
                 parseDeclaration(parent);
                 break;
-            case OUTPUT:
+            case "OUTPUT":
                 parseOutput(parent);
                 break;
-            case ASSIGNMENT:
+            case "ASSIGNMENT":
                 parseAssignment(parent);
                 break;
-            case CONDITIONAL:
+            case "CONDITIONAL":
                 parseConditional(parent);
                 break;
-            case LOOP:
+            case "LOOP":
                 parseLoop(parent);
                 break;
-            case FUNCTION:
+            case "FUNCTION":
                 parseFunction(parent);
                 break;
-            case EXPRESSION:
+            case "EXPRESSION":
                 parseExpression(parent);
                 break;
-            case INPUT:
+            case "INPUT":
                 parseInput(parent);
                 break;
             default:
