@@ -1,7 +1,10 @@
 package parser.grammar;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import lexer.TokenType;
 import parser.grammar.GrammarRule;
@@ -130,4 +133,28 @@ public enum NonTerminal {
     WHILE_LOOP,
     DO_WHILE_LOOP,
     ENHANCED_FOR;
+
+
+     private final Set<TokenType> firstSet = new HashSet<>();
+    private final Set<TokenType> followSet = new HashSet<>();
+
+    // **Method to define First Set**
+    public void addFirst(TokenType... tokens) {
+        firstSet.addAll(Arrays.asList(tokens));
+    }
+
+    // **Method to define Follow Set**
+    public void addFollow(TokenType... tokens) {
+        followSet.addAll(Arrays.asList(tokens));
+    }
+
+    // **Get FIRST Set**
+    public Set<TokenType> getFirst() {
+        return firstSet;
+    }
+
+    // **Get FOLLOW Set**
+    public Set<TokenType> getFollow() {
+        return followSet;
+    }
 }
