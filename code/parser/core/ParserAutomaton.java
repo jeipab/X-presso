@@ -3,119 +3,101 @@ package parser.core;
 import parser.grammar.NonTerminal;
 import parser.grammar.GrammarRule;
 import lexer.Token;
-import lexer.TokenType;
+import util.SyntaxErrorHandler;
 import java.util.Stack;
 import java.util.List;
+import java.util.Map;
 
 public class ParserAutomaton {
-    private Stack<State> stateStack;
+    private final Stack<Object> stateStack;
+    private final Map<NonTerminal, List<List<Object>>> grammarRules;
+    private final SyntaxErrorHandler syntaxErrorHandler;
+    private NonTerminal currentState;
 
     public ParserAutomaton() {
         this.stateStack = new Stack<>();
+        this.grammarRules = GrammarRule.loadRules();
+        this.syntaxErrorHandler = new SyntaxErrorHandler();
+        this.currentState = NonTerminal.SP_PROG; // Start at program
     }
 
-    // Push a new state onto the stack
     public void pushState(NonTerminal nonTerminal) {
-        stateStack.push(new State(nonTerminal));
+        stateStack.push(nonTerminal);
+        currentState = nonTerminal;
     }
 
-    // Pop the top state off the stack
     public void popState() {
         if (!stateStack.isEmpty()) {
             stateStack.pop();
+            currentState = stateStack.isEmpty() ? NonTerminal.SP_PROG : (NonTerminal) stateStack.peek();
         }
     }
 
-    // Drive the parsing process
-    public boolean parse(List<Token> tokens) {
-        try {
-            for (Token token : tokens) {
-                while (true) {
-                    if (stateStack.isEmpty()) {
-                        throw new RuntimeException("Unexpected end of input.");
-                    }
+    public boolean processToken(Token token) {
+        List<List<Object>> productions = grammarRules.get(currentState);
+        if (productions == null) return false;
 
-                    State currentState = stateStack.peek();
-                    NonTerminal currentNonTerminal = currentState.getSymbol();
-
-                    // Get the production rules for the current non-terminal
-                    List<GrammarRule> rules = NonTerminal.getProductions(currentNonTerminal);
-
-                    boolean matched = false;
-                    for (GrammarRule rule : rules) {
-                        if (ruleMatchesToken(rule, token)) {
-                            applyRule(rule);
-                            matched = true;
-                            break;
-                        }
-                    }
-
-                    if (matched) {
-                        break; // Proceed to the next token
-                    } else {
-                        handleError(token); // Handle syntax errors
-                        return false;
-                    }
-                }
+        for (List<Object> production : productions) {
+            if (!production.isEmpty() && production.get(0).equals(token.getLexeme())) {
+                return true;
             }
-
-            // Final validation
-            if (!stateStack.isEmpty()) {
-                throw new RuntimeException("Parsing incomplete: stack not empty.");
-            }
-
-            return true; // Parsing succeeded
-
-        } catch (RuntimeException e) {
-            System.err.println(e.getMessage());
-            return false; // Parsing failed
         }
-    }
-
-    // Apply a grammar rule (reduce action)
-    private void applyRule(GrammarRule rule) {
-        // Pop states for the rule's right-hand side
-        for (int i = 0; i < rule.getRightSide().size(); i++) {
-            popState();
-        }
-
-        // Push a new state for the rule's left-hand side
-        pushState(rule.getLeftSide());
-    }
-
-    // Check if a grammar rule matches a token
-    private boolean ruleMatchesToken(GrammarRule rule, Token token) {
-        // The first symbol on the right-hand side of the rule should match the token type
-        if (rule.getRightSide().isEmpty()) {
-            return false; // Invalid rule
-        }
-
-        Object firstSymbol = rule.getRightSide().get(0);
-        if (firstSymbol instanceof TokenType) {
-            return token.getType() == firstSymbol;
-        } else if (firstSymbol instanceof NonTerminal) {
-            // For non-terminals, check if the token is in their FIRST set
-            return NonTerminal.getFirst((NonTerminal) firstSymbol).contains(token.getType());
-        }
-
         return false;
     }
 
-    // Handle syntax errors
-    private void handleError(Token token) {
-        System.err.println("Syntax error at token: " + token);
+    public void transition(Token token) {
+        if (stateStack.isEmpty()) {
+            syntaxErrorHandler.reportError("Unexpected token '" + token.getLexeme() + "' at end of input.");
+            return;
+        }
+
+        Object top = stateStack.peek();
+
+        if (top instanceof String) {
+            if (top.equals(token.getLexeme())) {
+                stateStack.pop(); // Consume terminal
+            } else {
+                syntaxErrorHandler.reportError("Syntax error: Expected '" + top + "', found '" + token.getLexeme() + "'.");
+            }
+            return;
+        }
+
+        if (top instanceof NonTerminal) {
+            NonTerminal nonTerminal = (NonTerminal) top;
+            List<List<Object>> productions = grammarRules.get(nonTerminal);
+
+            for (List<Object> production : productions) {
+                if (!production.isEmpty() && production.get(0).equals(token.getLexeme())) {
+                    stateStack.pop(); 
+                    pushProduction(production);
+                    return;
+                }
+            }
+
+            syntaxErrorHandler.reportError(
+                "Unexpected token '" + token.getLexeme() + "' in state " + nonTerminal +
+                ". Expected one of: " + getExpectedTokens(productions)
+            );
+        }
     }
 
-    // Inner State class
-    private class State {
-        private NonTerminal symbol;
-
-        State(NonTerminal symbol) {
-            this.symbol = symbol;
+    private void pushProduction(List<Object> production) {
+        for (int i = production.size() - 1; i >= 0; i--) {
+            stateStack.push(production.get(i));
         }
+    }
 
-        public NonTerminal getSymbol() {
-            return symbol;
+    private String getExpectedTokens(List<List<Object>> productions) {
+        StringBuilder expected = new StringBuilder();
+        for (List<Object> production : productions) {
+            if (!production.isEmpty() && production.get(0) instanceof String) {
+                expected.append("'").append(production.get(0)).append("', ");
+            }
         }
+        return expected.length() > 0 ? expected.substring(0, expected.length() - 2) : "unknown tokens";
+    }
+
+    public NonTerminal getCurrentState() {
+        return currentState;
     }
 }
