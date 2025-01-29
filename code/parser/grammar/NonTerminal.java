@@ -96,7 +96,7 @@ public enum NonTerminal {
     DATE_FUNC,
     DATE_OBJ,
     DATE_OP,
-    MODIFIY_BLOCK,
+    MODIFY_BLOCK,
     QUERY_BLOCK,
     QUERY_STATEMENT,
     FROM_CLAUSE,
