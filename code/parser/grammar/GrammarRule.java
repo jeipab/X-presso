@@ -15,9 +15,19 @@ public class GrammarRule {
             List.of(NonTerminal.CLASS, NonTerminal.SP_PROG)
         ));
         
-        // Jeremy
         rules.put(NonTerminal.CLASS, List.of(
-            List.of("[", NonTerminal.ACCESS_MOD, "]", "[", NonTerminal.NON_ACCESS_MOD, "]", "class", "IDENTIFIER", "[", NonTerminal.INHERIT, "]", "{", NonTerminal.CLASS_BODY, "}")
+            List.of(NonTerminal.CLASS_MODS, "class", NonTerminal.IDENTIFIER, NonTerminal.CLASS_INHERIT, "{", NonTerminal.CLASS_BODY, "}"), // Full structure
+            List.of("class", NonTerminal.IDENTIFIER, NonTerminal.CLASS_INHERIT, "{", NonTerminal.CLASS_BODY, "}"), // Without modifiers
+            List.of(NonTerminal.CLASS, NonTerminal.SP_PROG) // Recursion for multiple classes
+        ));
+
+        // Allow multiple modifiers before "class"
+        rules.put(NonTerminal.CLASS_MODS, List.of(
+            List.of(NonTerminal.ACCESS_MOD, NonTerminal.CLASS_MODS), // Recursion to allow multiple access modifiers
+            List.of(NonTerminal.NON_ACCESS_MOD, NonTerminal.CLASS_MODS), // Recursion to allow multiple non-access modifiers
+            List.of(NonTerminal.ACCESS_MOD), // Single access modifier
+            List.of(NonTerminal.NON_ACCESS_MOD), // Single non-access modifier
+            List.of() // Empty case (no modifiers)
         ));
 
         rules.put(NonTerminal.ACCESS_MOD, List.of(
@@ -37,14 +47,10 @@ public class GrammarRule {
             List.of("volatile")
         ));
 
-        rules.put(NonTerminal.INHERIT, List.of(
-            List.of(NonTerminal.CLASS_INHERIT),
-            List.of(NonTerminal.INTERFACE_INHERIT)
-        ));
-
-        // Jeremy
         rules.put(NonTerminal.CLASS_INHERIT, List.of(
-            List.of(":>", "IDENTIFIER", "[", ",", "IDENTIFIER", "]")
+            List.of(":>", NonTerminal.IDENTIFIER, NonTerminal.CLASS_INHERIT), // Multiple parents (Recursion)
+            List.of(":>", NonTerminal.IDENTIFIER), // Single inheritance
+            List.of() // Empty case (no inheritance)
         ));
 
         // Caira

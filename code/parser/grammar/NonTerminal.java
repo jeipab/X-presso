@@ -10,6 +10,7 @@ public enum NonTerminal {
     // Core Program Structures
     SP_PROG,
     CLASS,
+    CLASS_MODS,
     ACCESS_MOD,
     NON_ACCESS_MOD,
     INHERIT,
