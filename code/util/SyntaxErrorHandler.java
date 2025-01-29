@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 import lexer.Token;
+import parser.core.Parser;
 
 public class SyntaxErrorHandler {
     private final List<SyntaxError> errors;
@@ -12,6 +13,7 @@ public class SyntaxErrorHandler {
     private final Stack<String> contextStack; // Tracks parsing context
     private static final int MAX_ERRORS = 25; // Prevent infinite error cascading
     private int errorCount;
+    private Parser parser;
 
     /**
      * Represents different types of syntactic errors that can occur.
@@ -37,7 +39,7 @@ public class SyntaxErrorHandler {
     }
 
 
-    public static class SyntaxError {
+    public static class SyntaxError extends RuntimeException {
         private final ErrorType type;
         private final String message;
         private final int line;
@@ -96,7 +98,7 @@ public class SyntaxErrorHandler {
         this(true);
     }
 
-   public SyntaxErrorHandler(boolean immediateLogging) {
+    public SyntaxErrorHandler(boolean immediateLogging) {
         this.errors = new ArrayList<>();
         this.immediateLogging = immediateLogging;
         this.contextStack = new Stack<>();
@@ -107,19 +109,20 @@ public class SyntaxErrorHandler {
      * Records a syntactic error with optional recovery suggestion.
      */
     public void reportError(ErrorType type, String message, int line, int column, String suggestion) {
-      if (errorCount >= MAX_ERRORS) {
+        if (errorCount >= MAX_ERRORS) {
             throw new RuntimeException("Maximum error limit reached. Stopping parsing.");
         }
-
+    
         String context = contextStack.isEmpty() ? "" : contextStack.peek();
         SyntaxError error = new SyntaxError(type, message, line, column, suggestion, context);
         errors.add(error);
         errorCount++;
-
+    
         if (immediateLogging) {
             System.err.println(error);
         }
-  // Apply recovery strategy
+    
+        // Apply error recovery
         RecoveryStrategy strategy = determineRecoveryStrategy(type);
         applyRecoveryStrategy(strategy);
     }
@@ -157,8 +160,12 @@ public class SyntaxErrorHandler {
      * Synchronizes the parser state by skipping tokens until a safe point
      */
     private void synchronize() {
-        // Implementation for synchronization point recovery
-        // This would typically skip tokens until a statement boundary
+        while (!parser.atEnd()) {
+            Token token = parser.advance();
+            if (token.getLexeme().equals(";") || token.getLexeme().equals("{") || token.getLexeme().equals("}")) {
+                return; // Stop skipping when reaching a statement boundary
+            }
+        }
     }
 
     /**
@@ -181,16 +188,16 @@ public class SyntaxErrorHandler {
     public void handleUnexpectedToken(Token token, Token expected, int line, int column) {
         String tokenValue = token != null ? token.getLexeme() : "null";
         String expectedValue = expected != null ? expected.getLexeme() : "null";
-        
+    
         reportError(
-                ErrorType.UNEXPECTED_TOKEN,
-                String.format("Unexpected token: '%s'. Expected: %s", 
-                            tokenValue, expectedValue),
-                line,
-                column,
-                "Verify the input and ensure the token matches the expected grammar"
-            );
+            ErrorType.UNEXPECTED_TOKEN,
+            String.format("Unexpected token: '%s'. Expected: %s", tokenValue, expectedValue),
+            line,
+            column,
+            "Check syntax and ensure correct token usage."
+        );
     }
+
     /**
      * Handles missing token errors.
      */

@@ -31,6 +31,8 @@ public enum NonTerminal {
 
     // Statements & Expressions
     STATEMENTS,
+    STATEMENT,
+    FUNCTION,
     EXPR,
     UNARY_EXPR,
     BINARY_EXPR,

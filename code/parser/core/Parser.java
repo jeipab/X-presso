@@ -1,10 +1,13 @@
 package parser.core;
 
 import lexer.Token;
+import lexer.TokenType;
 import parser.grammar.NonTerminal;
 import parser.grammar.GrammarRule;
 import parser.symbol.SymbolTable;
 import util.SyntaxErrorHandler;
+import util.SyntaxErrorHandler.SyntaxError;
+
 import java.util.List;
 
 /**
@@ -76,42 +79,27 @@ public class Parser {
     }
 
     private void parseStatement(ParseTree.Node parent) {
-        Token currentToken = peek();
+    Token currentToken = peek();
+    NonTerminal currentState = automaton.getCurrentState();
 
-        if (!automaton.processToken(currentToken)) {
-            errorHandler.reportError("Unexpected token: " + currentToken.getLexeme());
-            return;
-        }
-
-        switch (automaton.getCurrentState()) {
-            case "DECLARATION":
-                parseDeclaration(parent);
-                break;
-            case "OUTPUT":
-                parseOutput(parent);
-                break;
-            case "ASSIGNMENT":
-                parseAssignment(parent);
-                break;
-            case "CONDITIONAL":
-                parseConditional(parent);
-                break;
-            case "LOOP":
-                parseLoop(parent);
-                break;
-            case "FUNCTION":
-                parseFunction(parent);
-                break;
-            case "EXPRESSION":
-                parseExpression(parent);
-                break;
-            case "INPUT":
-                parseInput(parent);
-                break;
-            default:
-                errorHandler.reportError("Unknown statement type.");
-        }
+    if (!automaton.processToken(currentToken)) {
+        errorHandler.handleUnexpectedToken(currentToken, null, currentToken.getLine(), currentToken.getColumn());
+        return;
     }
+
+    switch (currentState) {
+        case DEC_STATE -> parseDeclaration(parent);
+        case OUT_STATE -> parseOutput(parent);
+        case ASS_STATE -> parseAssignment(parent);
+        case CON_STATE -> parseConditional(parent);
+        case ITER_STATE -> parseLoop(parent);
+        case FUNCTION -> parseFunction(parent);
+        case EXPR -> parseExpression(parent);
+        case IN_STATE -> parseInput(parent);
+        default -> errorHandler.handleInvalidSyntaxStructure("Unknown statement type", currentToken.getLine(), currentToken.getColumn());
+    }
+}
+
 
     private void parseDeclaration(ParseTree.Node parent) {
         automaton.transition(peek());
@@ -119,7 +107,7 @@ public class Parser {
         Token varName = expectIdentifier("Expected variable name");
         symbolTable.insert(varName.getLexeme(), varType.getLexeme());
         expect("=", "Expected '=' in declaration");
-        ParseTree.Node exprNode = parent.addChild(NonTerminal.EXPRESSION);
+        ParseTree.Node exprNode = parent.addChild(NonTerminal.EXPR);
         parseExpression(exprNode);
         expect(";", "Expected ';' at the end of statement");
     }
@@ -128,7 +116,7 @@ public class Parser {
         automaton.transition(peek());
         Token varName = expectIdentifier("Expected variable name");
         expect("=", "Expected '=' in assignment");
-        ParseTree.Node exprNode = parent.addChild(NonTerminal.EXPRESSION);
+        ParseTree.Node exprNode = parent.addChild(NonTerminal.EXPR);
         parseExpression(exprNode);
         expect(";", "Expected ';' at the end of statement");
     }
@@ -145,13 +133,45 @@ public class Parser {
         expect(";", "Expected ';' after input statement");
     }
 
+    private void parseConditional(ParseTree.Node parent) {
+        expect("if", "Expected 'if' keyword");
+        expect("(", "Expected '(' before condition");
+        ParseTree.Node conditionNode = parent.addChild(NonTerminal.EXPR);
+        parseExpression(conditionNode);
+        expect(")", "Expected ')' after condition");
+        expect("{", "Expected '{' before if block");
+        parseStatements(parent.addChild(NonTerminal.STATEMENTS));
+        expect("}", "Expected '}' after if block");
+    }
+
+    private void parseLoop(ParseTree.Node parent) {
+        expect("while", "Expected 'while' keyword");
+        expect("(", "Expected '(' before loop condition");
+        ParseTree.Node conditionNode = parent.addChild(NonTerminal.EXPR);
+        parseExpression(conditionNode);
+        expect(")", "Expected ')' after loop condition");
+        expect("{", "Expected '{' before loop block");
+        parseStatements(parent.addChild(NonTerminal.STATEMENTS));
+        expect("}", "Expected '}' after loop block");
+    }
+
+    private void parseFunction(ParseTree.Node parent) {
+        Token functionName = expectIdentifier("Expected function name");
+        expect("(", "Expected '(' before function parameters");
+        parseParameters(parent.addChild(NonTerminal.PARAMETERS));
+        expect(")", "Expected ')' after function parameters");
+        expect("{", "Expected '{' before function body");
+        parseStatements(parent.addChild(NonTerminal.STATEMENTS));
+        expect("}", "Expected '}' after function body");
+    }
+
     private void parseOutput(ParseTree.Node parent) {
         automaton.transition(peek());
         expect("Output", "Expected 'Output'");
         expect("::", "Expected '::' after Output");
         expect("print", "Expected 'print' function");
         expect("(", "Expected '(' before output content");
-        ParseTree.Node exprNode = parent.addChild(NonTerminal.EXPRESSION);
+        ParseTree.Node exprNode = parent.addChild(NonTerminal.EXPR);
         parseExpression(exprNode);
         expect(")", "Expected ')' to close output");
         expect(";", "Expected ';' after output statement");
@@ -167,7 +187,7 @@ public class Parser {
             return;
         }
 
-        ParseTree.Node left = new ParseTree.Node(NonTerminal.EXPRESSION);
+        ParseTree.Node left = new ParseTree.Node(NonTerminal.EXPR);
         parsePrecedence(left, precedence + 1); // Parse higher precedence expressions first
 
         while (true) {
@@ -203,15 +223,47 @@ public class Parser {
         } else if (GrammarRule.isIdentifier(currentToken)) {
             parent.addChild(advance().getLexeme()); // Add identifier
         } else {
-            throw new SyntaxError(currentToken.getLine(), "Unexpected token in expression");
+            throw new SyntaxErrorHandler.SyntaxError(
+                    SyntaxErrorHandler.ErrorType.UNEXPECTED_TOKEN,
+                    "Unexpected token in expression",
+                    currentToken.getLine(),
+                    currentToken.getColumn(),
+                    "Check the syntax of the expression.",
+                    "Parsing expression"
+                );
         }
     }
+
+    private void parseParameters(ParseTree.Node parent) {
+        if (check(")")) {
+            return; // No parameters (empty parentheses)
+        }
+    
+        do {
+            ParseTree.Node parameterNode = parent.addChild(NonTerminal.PARAMETER);
+            parseParameter(parameterNode);
+        } while (match(",")); // Continue parsing if there's a comma
+    
+        expect(")", "Expected ')' after parameters");
+    }
+    
+    /**
+     * Parses a single parameter in a function declaration.
+     */
+    private void parseParameter(ParseTree.Node parent) {
+        Token type = expectIdentifier("Expected parameter type");
+        Token name = expectIdentifier("Expected parameter name");
+    
+        parent.addChild(type.getLexeme());
+        parent.addChild(name.getLexeme());
+    }
+    
 
     private boolean isRightAssociative(int precedence) {
         return precedence == 4 || precedence == 5 || precedence == 16 || precedence == 17; // Based on provided table
     }
 
-    private Token advance() {
+    public Token advance() {
         return tokens.get(current++);
     }
 
@@ -225,7 +277,9 @@ public class Parser {
 
     private Token expect(String expected, String errorMessage) {
         if (!check(expected)) {
-            throw new SyntaxError(peek().getLine(), errorMessage);
+            Token errorToken = new Token(TokenType.UNKNOWN, expected, peek().getLine(), peek().getColumn());
+            errorHandler.handleMissingToken(expected, errorToken.getLine(), errorToken.getColumn());
+            return errorToken; // Returning a placeholder token to prevent crash
         }
         return advance();
     }
@@ -233,8 +287,27 @@ public class Parser {
     private Token expectIdentifier(String errorMessage) {
         Token token = advance();
         if (!GrammarRule.isIdentifier(token)) {
-            throw new SyntaxError(token.getLine(), errorMessage);
+            throw new SyntaxErrorHandler.SyntaxError(
+                SyntaxErrorHandler.ErrorType.UNEXPECTED_TOKEN,  // Error Type
+                errorMessage,                                   // Error Message
+                token.getLine(),                                // Line Number
+                token.getColumn(),                              // Column Number
+                "Expected an identifier, but found: " + token.getLexeme(), // Suggestion
+                "Parsing identifier"                           // Context
+            );
         }
         return token;
+    }
+
+    private boolean match(String expected) {
+        if (check(expected)) {
+            advance();
+            return true;
+        }
+        return false;
+    }
+
+    public boolean atEnd() {
+        return current >= tokens.size();
     }
 }

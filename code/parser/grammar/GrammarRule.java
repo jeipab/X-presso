@@ -2,6 +2,9 @@ package parser.grammar;
 
 import java.util.*;
 
+import lexer.Token;
+import lexer.TokenType;
+
 public class GrammarRule {
     private static final Map<NonTerminal, List<List<Object>>> rules = new HashMap<>();
 
@@ -606,6 +609,48 @@ public class GrammarRule {
 
     public static boolean isValidStart(NonTerminal nonTerminal, String token) {
         return rules.containsKey(nonTerminal) &&
-               rules.get(nonTerminal).stream().anyMatch(prod -> prod.get(0).equals(token));
+                rules.get(nonTerminal).stream().anyMatch(prod -> prod.get(0).equals(token));
+    }
+
+    public static boolean isIdentifier(Token token) {
+        return token.getType() == TokenType.IDENTIFIER;
+    }
+
+    public static boolean isLiteral(Token token) {
+        return token.getType() == TokenType.INT_LIT ||
+                token.getType() == TokenType.FLOAT_LIT ||
+                token.getType() == TokenType.STR_LIT ||
+                token.getType() == TokenType.CHAR_LIT ||
+                token.getType() == TokenType.BOOL_LIT ||
+                token.getType() == TokenType.DATE_LIT ||
+                token.getType() == TokenType.FRAC_LIT ||
+                token.getType() == TokenType.COMP_LIT;
+    }
+
+    public static boolean isOperatorAtPrecedence(Token token, int precedence) {
+        if (token == null) return false;
+        
+        String lexeme = token.getLexeme();
+        
+        return switch (precedence) {
+            case 1 -> lexeme.equals("(") || lexeme.equals(")") || lexeme.equals("[") || lexeme.equals("]") || lexeme.equals("{") || lexeme.equals("}");
+            case 2 -> lexeme.equals(".") || lexeme.equals("::") || lexeme.equals("->");
+            case 3 -> lexeme.equals("++") || lexeme.equals("--") || lexeme.equals("**");
+            case 4 -> lexeme.equals("+") || lexeme.equals("-") || lexeme.equals("!") || lexeme.equals("~") || lexeme.equals("++") || lexeme.equals("--") || lexeme.equals("**");
+            case 5 -> lexeme.equals("^");
+            case 6 -> lexeme.equals("*") || lexeme.equals("/") || lexeme.equals("%");
+            case 7 -> lexeme.equals("+") || lexeme.equals("-");
+            case 8 -> lexeme.equals("<<") || lexeme.equals(">>") || lexeme.equals(">>>");
+            case 9 -> lexeme.equals("&");
+            case 10 -> lexeme.equals("^");
+            case 11 -> lexeme.equals("|");
+            case 12 -> lexeme.equals("<") || lexeme.equals("<=") || lexeme.equals(">") || lexeme.equals(">=");
+            case 13 -> lexeme.equals("==") || lexeme.equals("!=");
+            case 14 -> lexeme.equals("&&");
+            case 15 -> lexeme.equals("||");
+            case 16 -> lexeme.equals("?");
+            case 17 -> lexeme.equals("=") || lexeme.equals("+=") || lexeme.equals("-=") || lexeme.equals("*=") || lexeme.equals("/=") || lexeme.equals("%=") || lexeme.equals("?=");
+            default -> false;
+        };
     }
 }
