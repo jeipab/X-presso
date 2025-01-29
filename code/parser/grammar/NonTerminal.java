@@ -22,6 +22,7 @@ public enum NonTerminal {
 
     // Declarations
     FIELD,
+    FIELD_INIT,
     DATA_TYPE,
     PARAMETERS,
     PARAMETER,

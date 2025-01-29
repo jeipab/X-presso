@@ -15,10 +15,37 @@ public class GrammarRule {
             List.of(NonTerminal.CLASS, NonTerminal.SP_PROG)
         ));
         
+        // Comprehensive class declaration rules
         rules.put(NonTerminal.CLASS, List.of(
-            List.of(NonTerminal.CLASS_MODS, "class", NonTerminal.IDENTIFIER, NonTerminal.CLASS_INHERIT, "{", NonTerminal.CLASS_BODY, "}"), // Full structure
-            List.of("class", NonTerminal.IDENTIFIER, NonTerminal.CLASS_INHERIT, "{", NonTerminal.CLASS_BODY, "}"), // Without modifiers
-            List.of(NonTerminal.CLASS, NonTerminal.SP_PROG) // Recursion for multiple classes
+            // Full structure with all optional components
+            List.of(NonTerminal.CLASS_MODS, "class", NonTerminal.IDENTIFIER, NonTerminal.CLASS_INHERIT, NonTerminal.INTERFACE_INHERIT, "{", NonTerminal.CLASS_BODY, "}"),
+            
+            // Without interface inheritance
+            List.of(NonTerminal.CLASS_MODS, "class", NonTerminal.IDENTIFIER, NonTerminal.CLASS_INHERIT, "{", NonTerminal.CLASS_BODY, "}"),
+            
+            // Without any inheritance
+            List.of(NonTerminal.CLASS_MODS, "class", NonTerminal.IDENTIFIER, "{", NonTerminal.CLASS_BODY, "}"),
+            
+            // Without modifiers but with both inheritances
+            List.of("class", NonTerminal.IDENTIFIER, NonTerminal.CLASS_INHERIT, NonTerminal.INTERFACE_INHERIT, "{", NonTerminal.CLASS_BODY, "}"),
+            
+            // Without modifiers, with class inheritance only
+            List.of("class", NonTerminal.IDENTIFIER, NonTerminal.CLASS_INHERIT, "{", NonTerminal.CLASS_BODY, "}"),
+            
+            // Without modifiers, with interface inheritance only
+            List.of("class", NonTerminal.IDENTIFIER, NonTerminal.INTERFACE_INHERIT, "{", NonTerminal.CLASS_BODY, "}"),
+            
+            // Minimal class declaration
+            List.of("class", NonTerminal.IDENTIFIER, "{", NonTerminal.CLASS_BODY, "}"),
+            
+            // Empty class declaration
+            List.of("class", NonTerminal.IDENTIFIER, "{", "}"),
+            
+            // With modifiers, empty class
+            List.of(NonTerminal.CLASS_MODS, "class", NonTerminal.IDENTIFIER, "{", "}"),
+            
+            // Multiple classes
+            List.of(NonTerminal.CLASS, NonTerminal.SP_PROG)
         ));
 
         // Allow multiple modifiers before "class"
@@ -60,11 +87,22 @@ public class GrammarRule {
         ));
 
         rules.put(NonTerminal.CLASS_BODY, List.of(
-            List.of(NonTerminal.SP_MAIN),
-            List.of(NonTerminal.SP_METHOD),
-            List.of(NonTerminal.FIELD),
-            List.of()
+            List.of(NonTerminal.CLASS_MEMBER_LIST),
+            List.of() // Empty body
         ));
+
+        // Add CLASS_MEMBER_LIST to handle multiple members
+        rules.put(NonTerminal.CLASS_MEMBER_LIST, List.of(
+            List.of(NonTerminal.CLASS_MEMBER),
+            List.of(NonTerminal.CLASS_MEMBER, NonTerminal.CLASS_MEMBER_LIST)
+        ));
+
+        rules.put(NonTerminal.CLASS_MEMBER, List.of(
+        List.of(NonTerminal.FIELD),
+        List.of(NonTerminal.SP_METHOD),
+        List.of(NonTerminal.SP_MAIN),
+        List.of(NonTerminal.CLASS) // Nested classes
+    ));
 
         rules.put(NonTerminal.SP_MAIN, List.of(
             List.of("public", "static", "void", "main", "(", "str", "[", "]", "args", ")", "{", NonTerminal.STATEMENTS, "}"),
@@ -73,24 +111,39 @@ public class GrammarRule {
 
         // Clarence
         rules.put(NonTerminal.SP_METHOD, List.of(
-            List.of(NonTerminal.ACCESS_MOD, NonTerminal.NON_ACCESS_MOD, NonTerminal.DATA_TYPE, "IDENTIFIER", "(",  NonTerminal.PARAMETERS, ")", "{", NonTerminal.STATEMENTS, "}"),
-            List.of(NonTerminal.ACCESS_MOD, NonTerminal.NON_ACCESS_MOD, NonTerminal.DATA_TYPE, "IDENTIFIER", "(", ")", "{", NonTerminal.STATEMENTS, "}"),
-            List.of(NonTerminal.ACCESS_MOD, NonTerminal.DATA_TYPE, "IDENTIFIER", "(",  NonTerminal.PARAMETERS, ")", "{", NonTerminal.STATEMENTS, "}"),
-            List.of(NonTerminal.ACCESS_MOD, NonTerminal.DATA_TYPE, "IDENTIFIER", "(", ")", "{", NonTerminal.STATEMENTS, "}"),
-            List.of(NonTerminal.NON_ACCESS_MOD, NonTerminal.DATA_TYPE, "IDENTIFIER", "(",  NonTerminal.PARAMETERS, ")", "{", NonTerminal.STATEMENTS, "}"),
-            List.of(NonTerminal.NON_ACCESS_MOD, NonTerminal.DATA_TYPE, "IDENTIFIER", "(", ")", "{", NonTerminal.STATEMENTS, "}"),
-            List.of(NonTerminal.DATA_TYPE, "IDENTIFIER", "(",  NonTerminal.PARAMETERS, ")", "{", NonTerminal.STATEMENTS, "}"),
-            List.of(NonTerminal.DATA_TYPE, "IDENTIFIER", "(", ")", "{", NonTerminal.STATEMENTS, "}")
+            List.of(NonTerminal.ACCESS_MOD, NonTerminal.NON_ACCESS_MOD, NonTerminal.DATA_TYPE, NonTerminal.IDENTIFIER, "(",  NonTerminal.PARAMETERS, ")", "{", NonTerminal.STATEMENTS, "}"),
+            List.of(NonTerminal.ACCESS_MOD, NonTerminal.NON_ACCESS_MOD, NonTerminal.DATA_TYPE, NonTerminal.IDENTIFIER, "(", ")", "{", NonTerminal.STATEMENTS, "}"),
+            List.of(NonTerminal.ACCESS_MOD, NonTerminal.DATA_TYPE, NonTerminal.IDENTIFIER, "(",  NonTerminal.PARAMETERS, ")", "{", NonTerminal.STATEMENTS, "}"),
+            List.of(NonTerminal.ACCESS_MOD, NonTerminal.DATA_TYPE, NonTerminal.IDENTIFIER, "(", ")", "{", NonTerminal.STATEMENTS, "}"),
+            List.of(NonTerminal.NON_ACCESS_MOD, NonTerminal.DATA_TYPE, NonTerminal.IDENTIFIER, "(",  NonTerminal.PARAMETERS, ")", "{", NonTerminal.STATEMENTS, "}"),
+            List.of(NonTerminal.NON_ACCESS_MOD, NonTerminal.DATA_TYPE, NonTerminal.IDENTIFIER, "(", ")", "{", NonTerminal.STATEMENTS, "}"),
+            List.of(NonTerminal.DATA_TYPE, NonTerminal.IDENTIFIER, "(",  NonTerminal.PARAMETERS, ")", "{", NonTerminal.STATEMENTS, "}"),
+            List.of(NonTerminal.DATA_TYPE, NonTerminal.IDENTIFIER, "(", ")", "{", NonTerminal.STATEMENTS, "}")
 
         ));
         // Clarence
         //Declarations
         rules.put(NonTerminal.FIELD, List.of(
-            List.of(NonTerminal.ACCESS_MOD,  NonTerminal.NON_ACCESS_MOD, NonTerminal.DATA_TYPE, "IDENTIFIER", ";"),
-            List.of(NonTerminal.ACCESS_MOD,  NonTerminal.DATA_TYPE, "IDENTIFIER", ";"),
-            List.of(NonTerminal.NON_ACCESS_MOD, NonTerminal.DATA_TYPE, "IDENTIFIER", ";"),
-            List.of(NonTerminal.DATA_TYPE, "IDENTIFIER", ";")
+            // With modifiers and assignment
+            List.of(NonTerminal.ACCESS_MOD, NonTerminal.NON_ACCESS_MOD, NonTerminal.DATA_TYPE, NonTerminal.IDENTIFIER, NonTerminal.FIELD_INIT, ";"),
+            // With access modifier and assignment
+            List.of(NonTerminal.ACCESS_MOD, NonTerminal.DATA_TYPE, NonTerminal.IDENTIFIER, NonTerminal.FIELD_INIT, ";"),
+            // With non-access modifier and assignment
+            List.of(NonTerminal.NON_ACCESS_MOD, NonTerminal.DATA_TYPE, NonTerminal.IDENTIFIER, NonTerminal.FIELD_INIT, ";"),
+            // Just data type and assignment
+            List.of(NonTerminal.DATA_TYPE, NonTerminal.IDENTIFIER, NonTerminal.FIELD_INIT, ";"),
+            
+            // Same patterns without assignment
+            List.of(NonTerminal.ACCESS_MOD, NonTerminal.NON_ACCESS_MOD, NonTerminal.DATA_TYPE, NonTerminal.IDENTIFIER, ";"),
+            List.of(NonTerminal.ACCESS_MOD, NonTerminal.DATA_TYPE, NonTerminal.IDENTIFIER, ";"),
+            List.of(NonTerminal.NON_ACCESS_MOD, NonTerminal.DATA_TYPE, NonTerminal.IDENTIFIER, ";"),
+            List.of(NonTerminal.DATA_TYPE, NonTerminal.IDENTIFIER, ";")
+        ));
 
+        // Add FIELD_INIT for field initialization
+        rules.put(NonTerminal.FIELD_INIT, List.of(
+            List.of("=", NonTerminal.EXPR),
+            List.of() // Optional - no initialization
         ));
 
         rules.put(NonTerminal.DATA_TYPE, List.of(
@@ -113,7 +166,7 @@ public class GrammarRule {
         ));
 
         rules.put(NonTerminal.PARAMETER, List.of(
-            List.of(NonTerminal.DATA_TYPE, "IDENTIFIER")
+            List.of(NonTerminal.DATA_TYPE, NonTerminal.IDENTIFIER)
         ));
 
         rules.put(NonTerminal.STATEMENTS, List.of(
