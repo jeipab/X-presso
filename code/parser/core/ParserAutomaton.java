@@ -1,24 +1,21 @@
 package parser.core;
 
+import lexer.Token;
 import parser.grammar.NonTerminal;
 import parser.grammar.GrammarRule;
-import lexer.Token;
 import util.SyntaxErrorHandler;
 import java.util.Stack;
 import java.util.List;
-import java.util.Map;
 
 public class ParserAutomaton {
     private final Stack<Object> stateStack;
-    private final Map<NonTerminal, List<List<Object>>> grammarRules;
     private final SyntaxErrorHandler syntaxErrorHandler;
     private NonTerminal currentState;
 
     public ParserAutomaton() {
         this.stateStack = new Stack<>();
-        this.grammarRules = GrammarRule.loadRules();
         this.syntaxErrorHandler = new SyntaxErrorHandler();
-        this.currentState = NonTerminal.SP_PROG; // Start at program
+        this.currentState = NonTerminal.SP_PROG; // Start at SP_PROG
     }
 
     public void pushState(NonTerminal nonTerminal) {
@@ -33,18 +30,16 @@ public class ParserAutomaton {
         }
     }
 
+    // This function processes the current token against the top of the stack
     public boolean processToken(Token token) {
-        List<List<Object>> productions = grammarRules.get(currentState);
-        if (productions == null) return false;
-
-        for (List<Object> production : productions) {
-            if (!production.isEmpty() && production.get(0).equals(token.getLexeme())) {
-                return true;
-            }
+        // Check if the token can start the production for the current state
+        if (GrammarRule.isValidStart(currentState, token.getLexeme())) {
+            return true; // Valid token for the current state
         }
-        return false;
+        return false; // Invalid token for the current state
     }
 
+    // This function handles the actual state transition based on the token
     public void transition(Token token) {
         if (stateStack.isEmpty()) {
             syntaxErrorHandler.reportError("Unexpected token '" + token.getLexeme() + "' at end of input.");
@@ -54,6 +49,7 @@ public class ParserAutomaton {
         Object top = stateStack.peek();
 
         if (top instanceof String) {
+            // Handle terminal tokens
             if (top.equals(token.getLexeme())) {
                 stateStack.pop(); // Consume terminal
             } else {
@@ -64,12 +60,13 @@ public class ParserAutomaton {
 
         if (top instanceof NonTerminal) {
             NonTerminal nonTerminal = (NonTerminal) top;
-            List<List<Object>> productions = grammarRules.get(nonTerminal);
+            List<List<Object>> productions = GrammarRule.getProductions(nonTerminal);
 
             for (List<Object> production : productions) {
+                // Check if the production can be applied based on the token
                 if (!production.isEmpty() && production.get(0).equals(token.getLexeme())) {
-                    stateStack.pop(); 
-                    pushProduction(production);
+                    stateStack.pop(); // Pop the current non-terminal from the stack
+                    pushProduction(production); // Push the production onto the stack
                     return;
                 }
             }
@@ -81,6 +78,7 @@ public class ParserAutomaton {
         }
     }
 
+    // Push the production's elements onto the stack in reverse order
     private void pushProduction(List<Object> production) {
         for (int i = production.size() - 1; i >= 0; i--) {
             stateStack.push(production.get(i));
