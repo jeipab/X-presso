@@ -14,7 +14,8 @@ public class GrammarRule {
             List.of(NonTerminal.CLASS),
             List.of(NonTerminal.CLASS, NonTerminal.SP_PROG)
         ));
-
+        
+        // Jeremy
         rules.put(NonTerminal.CLASS, List.of(
             List.of("[", NonTerminal.ACCESS_MOD, "]", "[", NonTerminal.NON_ACCESS_MOD, "]", "class", "IDENTIFIER", "[", NonTerminal.INHERIT, "]", "{", NonTerminal.CLASS_BODY, "}")
         ));
@@ -41,10 +42,12 @@ public class GrammarRule {
             List.of(NonTerminal.INTERFACE_INHERIT)
         ));
 
+        // Jeremy
         rules.put(NonTerminal.CLASS_INHERIT, List.of(
             List.of(":>", "IDENTIFIER", "[", ",", "IDENTIFIER", "]")
         ));
 
+        // Caira
         rules.put(NonTerminal.INTERFACE_INHERIT, List.of(
             List.of(":>>", "IDENTIFIER", "[", ",", "IDENTIFIER", "]")
         ));
@@ -60,12 +63,13 @@ public class GrammarRule {
             List.of("main", "(", "args", ")", "{", NonTerminal.STATEMENTS, "}")
         ));
 
+        // Clarence
         rules.put(NonTerminal.SP_METHOD, List.of(
             List.of("[", NonTerminal.ACCESS_MOD, "]", "[", NonTerminal.NON_ACCESS_MOD, "]", NonTerminal.DATA_TYPE, "IDENTIFIER", "(", "[", NonTerminal.PARAMETERS, "]", ")", "{", NonTerminal.STATEMENTS, "}")
         ));
 
+        // Clarence
         //Declarations
-
         rules.put(NonTerminal.FIELD, List.of(
             List.of("[", NonTerminal.ACCESS_MOD, "]", "[", NonTerminal.NON_ACCESS_MOD, "]", NonTerminal.DATA_TYPE, "IDENTIFIER", ";")
         ));
@@ -412,6 +416,7 @@ public class GrammarRule {
             List.of("switch-fall", "(", NonTerminal.IDENTIFIER, ")", "{", NonTerminal.CASES, "}")
         ));
 
+        // Caira
         rules.put(NonTerminal.CASES, List.of(
             List.of("case", NonTerminal.STR_LIT, ":", "{", NonTerminal.STATEMENTS, "}", NonTerminal.CASES),
             List.of("case", NonTerminal.INT_LIT, ":", "{", NonTerminal.STATEMENTS, "}", NonTerminal.CASES),
