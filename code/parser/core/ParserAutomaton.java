@@ -50,6 +50,8 @@ public class ParserAutomaton {
             } else if (first instanceof NonTerminal) {
                 // For non-terminals, recursively check their productions
                 NonTerminal nonTerm = (NonTerminal) first;
+                
+
                 if (isValidTokenForState(nonTerm, token, visited)) {
                     return true;
                 }
