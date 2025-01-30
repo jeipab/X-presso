@@ -3,15 +3,18 @@ package parser.core;
 import lexer.Token;
 import parser.grammar.GrammarRule;
 import parser.grammar.NonTerminal;
+import util.SyntaxErrorHandler;
 import util.SyntaxErrorHandler.SyntaxError;
 import java.util.List;
 import java.util.Stack;
 
 public class ParserAutomaton {
     private final Stack<NonTerminal> stateStack;
+    private final SyntaxErrorHandler errorHandler;
 
     public ParserAutomaton() {
         this.stateStack = new Stack<>();
+        this.errorHandler = new SyntaxErrorHandler();
     }
 
     public void reset() {
@@ -36,6 +39,13 @@ public class ParserAutomaton {
         NonTerminal currentState = getCurrentState();
     
         if (currentState == null) {
+            errorHandler.reportError(
+                SyntaxErrorHandler.ErrorType.UNEXPECTED_EOF,
+                "Unexpected end of input - incomplete syntax",
+                token.getLine(),
+                token.getColumn(),
+                "Check for missing closing tokens or statements"
+            );
             return false;
         }
     
@@ -46,12 +56,12 @@ public class ParserAutomaton {
                 Object firstElement = production.get(0);
     
                 if (firstElement instanceof String) { 
-                    // ✅ Only expand if the terminal matches the token
+                    // Only expand if the terminal matches the token
                     if (((String) firstElement).equals(token.getLexeme())) {
                         return transition(token); // Ensure token is consumed
                     }
                 } else if (firstElement instanceof NonTerminal) {
-                    // ✅ Only expand if the token belongs to this nonterminal
+                    // Only expand if the token belongs to this nonterminal
                     if (canExpand((NonTerminal) firstElement, token)) {
                         expandNonTerminal(currentState, production);
                         return true; // Expansion happens, but no token consumed yet
@@ -65,11 +75,27 @@ public class ParserAutomaton {
         }
     
         // If no valid transition is found, return false
+        errorHandler.reportError(
+            SyntaxErrorHandler.ErrorType.UNEXPECTED_EOF,
+            "No valid transition found",
+            token.getLine(),
+            token.getColumn(),
+            "Check for missing closing tokens or statements"
+        );
         return false;
     }
 
     public boolean transition(Token token) {
-        if (isStackEmpty()) return false;
+        if (isStackEmpty()) {
+            errorHandler.reportError(
+                SyntaxErrorHandler.ErrorType.UNEXPECTED_EOF,
+                "Unexpected end of input - incomplete syntax",
+                token.getLine(),
+                token.getColumn(),
+                "Check for missing closing tokens or statements"
+            );
+            return false;
+        }
     
         NonTerminal currentState = getCurrentState();
         List<List<Object>> productions = GrammarRule.getProductions(currentState);
@@ -96,7 +122,14 @@ public class ParserAutomaton {
                 }
             }
         }
-    
+        
+        errorHandler.reportError(
+            SyntaxErrorHandler.ErrorType.UNEXPECTED_EOF,
+            "No valid transition found",
+            token.getLine(),
+            token.getColumn(),
+            "Check for missing closing tokens or statements"
+        );
         return false;
     }
 
@@ -125,12 +158,12 @@ public class ParserAutomaton {
                 Object firstElement = production.get(0);
     
                 if (firstElement instanceof String) {
-                    // ✅ If token matches a terminal in the first position, allow expansion
+                    // If token matches a terminal in the first position, allow expansion
                     if (((String) firstElement).equals(token.getLexeme())) {
                         return true;
                     }
                 } else if (firstElement instanceof NonTerminal) {
-                    // ✅ If it's a non-terminal, recursively check if it can expand to match the token
+                    // If it's a non-terminal, recursively check if it can expand to match the token
                     if (canExpand((NonTerminal) firstElement, token)) {
                         return true;
                     }
@@ -138,7 +171,7 @@ public class ParserAutomaton {
             }
         }
         
-        return false; // ❌ Avoid expansion if no match is found
+        return false; // Avoid expansion if no match is found
     }
 
     public NonTerminal getCurrentState() {
