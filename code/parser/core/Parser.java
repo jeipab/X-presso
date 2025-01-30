@@ -1,6 +1,7 @@
 package parser.core;
 
 import lexer.Token;
+import parser.grammar.GrammarRule;
 import parser.grammar.NonTerminal;
 import parser.symbol.SymbolTable;
 import util.SyntaxErrorHandler;

@@ -17,6 +17,7 @@ import lexer.Token;
 import lexer.TokenType;
 import parser.core.ParseTree;
 import parser.core.Parser;
+import parser.core.TokenVisualizer;
 import util.ErrorHandler;
 import util.SourceReader;
 
@@ -641,23 +642,16 @@ public class Main {
         System.out.println("\nStarting Syntax Analysis...");
         System.out.println("==========================");
 
-        String dotFilePath = "ast/parse_tree.dot";
-        File outputFile = new File(dotFilePath);
-        outputFile.getParentFile().mkdirs();
+        TokenVisualizer tokenVisualizer = new TokenVisualizer();
+        String tokenVisualization = tokenVisualizer.convertTokensToVizFormat(tokens);
 
-        // Initialize parser with filtered tokens
-        Parser parser = new Parser(tokens);
-        ParseTree parseTree = parser.parse();
-
-        // Convert parse tree to Graphviz DOT format
-        String dotOutput = parseTree.toGraphviz();
-        System.out.println(dotOutput);
-
-        try (FileWriter writer = new FileWriter(dotFilePath)) {
-            writer.write(dotOutput);
-            System.out.println("DOT file successfully saved at: " + dotFilePath);
+        // Save the visualization to a file
+        String tokenVizFilePath = "ast/token_visualization.dot";
+        try (FileWriter writer = new FileWriter(tokenVizFilePath)) {
+            writer.write(tokenVisualization);
+            System.out.println("Token visualization successfully saved at: " + tokenVizFilePath);
         } catch (IOException e) {
-            System.err.println("Error saving DOT file: " + e.getMessage());
+            System.err.println("Error saving token visualization: " + e.getMessage());
         }
     }
 }
