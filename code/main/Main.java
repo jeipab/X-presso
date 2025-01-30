@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 import lexer.Lexer;
 import lexer.Token;
 import lexer.TokenType;
-import parser.core.ParseTree;
 import parser.core.Parser;
 import parser.core.TokenVisualizer;
 import util.ErrorHandler;
@@ -34,6 +33,7 @@ public class Main {
     private boolean verbose;
     private String outputFormat;
     private boolean outputToFile;
+    private Parser parser;
     
     public Main() {
         this.scanner = new Scanner(System.in);
@@ -238,6 +238,8 @@ public class Main {
 
             // 6. Perform syntax analysis with filtered tokens
             performSyntaxAnalysis(filteredTokens);
+            this.parser = new Parser(filteredTokens);
+            parser.parse();
         } catch (Exception e) {
             throw new IOException("Error processing file: " + e.getMessage(), e);
         }

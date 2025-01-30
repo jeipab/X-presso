@@ -3,18 +3,14 @@ package parser.core;
 import lexer.Token;
 import parser.grammar.GrammarRule;
 import parser.grammar.NonTerminal;
-import util.SyntaxErrorHandler;
-import util.SyntaxErrorHandler.SyntaxError;
 import java.util.List;
 import java.util.Stack;
 
 public class ParserAutomaton {
     private final Stack<NonTerminal> stateStack;
-    private final SyntaxErrorHandler errorHandler;
 
     public ParserAutomaton() {
         this.stateStack = new Stack<>();
-        this.errorHandler = new SyntaxErrorHandler();
     }
 
     public void reset() {
@@ -23,11 +19,13 @@ public class ParserAutomaton {
 
     public void pushState(NonTerminal state) {
         stateStack.push(state);
+        System.out.println("Pushed state: " + state);
     }
 
     public void popState() {
         if (!stateStack.isEmpty()) {
             NonTerminal top = stateStack.pop();
+            System.out.println("Popped state: " + top);
         }
     }
 
@@ -35,143 +33,105 @@ public class ParserAutomaton {
         if (isStackEmpty()) {
             return false;
         }
-    
+
         NonTerminal currentState = getCurrentState();
-    
+        System.out.println("Processing token: " + token.getLexeme() + " in state: " + currentState);
+
         if (currentState == null) {
-            errorHandler.reportError(
-                SyntaxErrorHandler.ErrorType.UNEXPECTED_EOF,
-                "Unexpected end of input - incomplete syntax",
-                token.getLine(),
-                token.getColumn(),
-                "Check for missing closing tokens or statements"
-            );
             return false;
         }
-    
+
         List<List<Object>> productions = GrammarRule.getProductions(currentState);
-    
+
         for (List<Object> production : productions) {
             if (!production.isEmpty()) {
                 Object firstElement = production.get(0);
-    
-                if (firstElement instanceof String) { 
-                    // Only expand if the terminal matches the token
-                    if (((String) firstElement).equals(token.getLexeme())) {
-                        return transition(token); // Ensure token is consumed
-                    }
-                } else if (firstElement instanceof NonTerminal) {
-                    // Only expand if the token belongs to this nonterminal
-                    if (canExpand((NonTerminal) firstElement, token)) {
+
+                if (firstElement instanceof NonTerminal) {
+                    if (!stateStack.contains(firstElement)) { // Prevent redundant expansion
                         expandNonTerminal(currentState, production);
-                        return true; // Expansion happens, but no token consumed yet
+                        return true;
+                    }
+                } else if (firstElement instanceof String) {
+                    if (((String) firstElement).equals(token.getLexeme())) {
+                        return transition(token);
                     }
                 }
             } else {
-                // Handle empty production (used to exit recursive states like CLASS_MODS)
+                System.out.println("Using empty production for state: " + currentState);
                 popState();
                 return true;
             }
         }
-    
-        // If no valid transition is found, return false
-        errorHandler.reportError(
-            SyntaxErrorHandler.ErrorType.UNEXPECTED_EOF,
-            "No valid transition found",
-            token.getLine(),
-            token.getColumn(),
-            "Check for missing closing tokens or statements"
-        );
+
+        // If no valid transition is found, perform error recovery
+        handleError(token);
         return false;
     }
 
     public boolean transition(Token token) {
-        if (isStackEmpty()) {
-            errorHandler.reportError(
-                SyntaxErrorHandler.ErrorType.UNEXPECTED_EOF,
-                "Unexpected end of input - incomplete syntax",
-                token.getLine(),
-                token.getColumn(),
-                "Check for missing closing tokens or statements"
-            );
-            return false;
-        }
-    
+        if (isStackEmpty()) return false;
+
         NonTerminal currentState = getCurrentState();
         List<List<Object>> productions = GrammarRule.getProductions(currentState);
-    
+
         for (List<Object> production : productions) {
             if (!production.isEmpty()) {
                 Object firstElement = production.get(0);
-    
-                if (firstElement instanceof String) { 
+
+                if (firstElement instanceof String) {
                     String terminal = (String) firstElement;
                     if (terminal.equals(token.getLexeme())) {
-                        popState(); // No need to pass parent here
-    
-                        // Reset state only if stack is empty
+                        System.out.println("Matched terminal: " + terminal + " with token: " + token.getLexeme());
+
+                        System.out.println("Popping state: " + currentState);
+                        popState();
+
                         if (isStackEmpty()) {
                             pushState(NonTerminal.SP_PROG);
                         }
-    
+
                         return true;
                     }
                 } else if (firstElement instanceof NonTerminal) {
-                    expandNonTerminal(currentState, production);
-                    return transition(token);
+                    if (!stateStack.contains(firstElement)) {
+                        expandNonTerminal(currentState, production);
+                        return transition(token);
+                    }
                 }
             }
         }
-        
-        errorHandler.reportError(
-            SyntaxErrorHandler.ErrorType.UNEXPECTED_EOF,
-            "No valid transition found",
-            token.getLine(),
-            token.getColumn(),
-            "Check for missing closing tokens or statements"
-        );
+
         return false;
     }
 
     private void expandNonTerminal(NonTerminal nonTerminal, List<Object> production) {
-        // Push the production elements in reverse order (right to left)
+        System.out.println("\nExpanding " + nonTerminal + " with production: " + production);
+
         for (int i = production.size() - 1; i >= 0; i--) {
             Object element = production.get(i);
-    
+
             if (element instanceof NonTerminal) {
-                // Avoid pushing duplicates
-                if (!stateStack.contains(element)) {
+                if (!stateStack.contains(element)) { // Prevent redundant expansion
                     pushState((NonTerminal) element);
                 }
             } else if (element instanceof String) {
+                System.out.println("Encountered terminal: " + element + ", will match in transition()");
             } else {
                 throw new RuntimeException("Unexpected production rule element type: " + element.getClass());
             }
         }
     }
 
-    private boolean canExpand(NonTerminal nonTerminal, Token token) {
-        List<List<Object>> productions = GrammarRule.getProductions(nonTerminal);
-    
-        for (List<Object> production : productions) {
-            if (!production.isEmpty()) {
-                Object firstElement = production.get(0);
-    
-                if (firstElement instanceof String) {
-                    // If token matches a terminal in the first position, allow expansion
-                    if (((String) firstElement).equals(token.getLexeme())) {
-                        return true;
-                    }
-                } else if (firstElement instanceof NonTerminal) {
-                    // If it's a non-terminal, recursively check if it can expand to match the token
-                    if (canExpand((NonTerminal) firstElement, token)) {
-                        return true;
-                    }
-                }
-            }
+    private void handleError(Token token) {
+        System.err.println("Syntax Error: Unexpected token '" + token.getLexeme() + "' at line " + token.getLine() + ", column " + token.getColumn());
+
+        // Pop states aggressively to attempt recovery
+        while (!isStackEmpty() && !GrammarRule.isValidStart(getCurrentState(), token.getLexeme())) {
+            popState();
         }
-        
-        return false; // Avoid expansion if no match is found
+
+        System.err.println("Attempting recovery, new state: " + getCurrentState());
     }
 
     public NonTerminal getCurrentState() {

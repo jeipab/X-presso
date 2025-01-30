@@ -7,13 +7,11 @@ import java.util.Stack;
 import lexer.*;
 
 public class TokenVisualizer {
-    private Map<String, Integer> tokenCounter;
     private StringBuilder dotBuilder;
     private int nodeCount;
     private Stack<String> scopeStack;
 
     public TokenVisualizer() {
-        this.tokenCounter = new HashMap<>();
         this.dotBuilder = new StringBuilder();
         this.nodeCount = 0;
         this.scopeStack = new Stack<>();

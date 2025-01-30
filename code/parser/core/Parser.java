@@ -1,23 +1,19 @@
 package parser.core;
 
 import lexer.Token;
-import parser.grammar.GrammarRule;
 import parser.grammar.NonTerminal;
-import parser.symbol.SymbolTable;
 import util.SyntaxErrorHandler;
 
 import java.util.List;
 
 public class Parser {
     private final List<Token> tokens;
-    private final SymbolTable symbolTable;
     private final ParserAutomaton automaton;
     private final SyntaxErrorHandler errorHandler;
     private int current = 0;
 
     public Parser(List<Token> tokens) {
         this.tokens = tokens;
-        this.symbolTable = new SymbolTable();
         this.automaton = new ParserAutomaton();
         this.errorHandler = new SyntaxErrorHandler(this);
     }
@@ -28,12 +24,7 @@ public class Parser {
      * @return The parsed tree structure.
      */
     public ParseTree parse() {
-        if (true) {
-            System.out.println("Successfully parsed.");
-        }
-        
         ParseTree parseTree = new ParseTree(NonTerminal.SP_PROG);
-        ParseTreeNode rootNode = parseTree.getRoot();
     
         try {
             // Initialize parsing by pushing the start symbol

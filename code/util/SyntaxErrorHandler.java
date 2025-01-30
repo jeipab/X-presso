@@ -76,7 +76,7 @@ public class SyntaxErrorHandler {
             return suggestion;
         }
 
-         public String getContext() {
+        public String getContext() {
             return context;
         }
         @Override
@@ -87,7 +87,7 @@ public class SyntaxErrorHandler {
             if (suggestion != null && !suggestion.isEmpty()) {
                 error.append(String.format("Suggestion: %s%n", suggestion));
             }
-             if (context != null && !context.isEmpty()) {
+            if (context != null && !context.isEmpty()) {
                 error.append(String.format("Context: %s%n", context));
             }
             return error.toString();

@@ -10,7 +10,6 @@ import java.util.List;
 public class ParseTreeNode {
     private String value;
     private List<ParseTreeNode> children = new ArrayList<>();
-    private Token token;
     private TokenType type;
     private ParseTreeNode parent;
 
@@ -26,7 +25,6 @@ public class ParseTreeNode {
     }
 
     public ParseTreeNode(Token token) {
-        this.token = token;
         this.value = token.getLexeme();
     }
 
