@@ -46,7 +46,7 @@ public class TokenVisualizer {
                 continue;
             }
 
-            // === BASE STRUCTURE (Class, Function) ===
+            // === CLASS DECLARATIONS ===
             if (lexeme.equals("class")) {
                 String classNode = createNode("ClassDecl");
                 addEdge(parentNode, classNode);
@@ -92,22 +92,22 @@ public class TokenVisualizer {
                 continue;
             }
 
-            // === EXPRESSIONS & OPERATIONS ===
-            if (i + 1 < tokens.size() && tokens.get(i + 1).getLexeme().matches("[=+\\-*/]")) {
-                String exprNode = createNode("Expression");
-                addEdge(parentNode, exprNode);
-                addEdge(exprNode, createNode("Variable\n'" + lexeme + "'"));
-                addEdge(exprNode, createNode("Operator\n'" + tokens.get(i + 1).getLexeme() + "'"));
+            // === DECLARATIONS ===
+            if (i + 1 < tokens.size() && tokens.get(i + 1).getLexeme().matches("=|:=")) {
+                String declNode = createNode("Declaration");
+                addEdge(parentNode, declNode);
+                addEdge(declNode, createNode("Variable\n'" + lexeme + "'"));
+                addEdge(declNode, createNode("Operator\n'" + tokens.get(i + 1).getLexeme() + "'"));
 
                 i += 2;
                 if (i < tokens.size()) {
-                    addEdge(exprNode, createNode("Value\n'" + tokens.get(i).getLexeme() + "'"));
+                    addEdge(declNode, createNode("Value\n'" + tokens.get(i).getLexeme() + "'"));
                     i++;
                 }
                 continue;
             }
 
-            // === CONDITIONALS (IF-ELSE, SWITCH) ===
+            // === CONDITIONALS ===
             if (lexeme.equals("if")) {
                 String ifNode = createNode("IfStatement");
                 addEdge(parentNode, ifNode);
@@ -133,20 +133,7 @@ public class TokenVisualizer {
                 continue;
             }
 
-            if (lexeme.equals("else")) {
-                String elseNode = createNode("ElseStatement");
-                addEdge(parentNode, elseNode);
-                i++;
-                if (i < tokens.size() && tokens.get(i).getLexeme().equals("{")) {
-                    String blockNode = createNode("ElseBlock");
-                    addEdge(elseNode, blockNode);
-                    scopeStack.push(blockNode);
-                    i++;
-                }
-                continue;
-            }
-
-            // === LOOPS (FOR, WHILE) ===
+            // === LOOPS ===
             if (lexeme.equals("for") || lexeme.equals("while")) {
                 String loopNode = createNode(lexeme.equals("for") ? "ForLoop" : "WhileLoop");
                 addEdge(parentNode, loopNode);
@@ -184,6 +171,21 @@ public class TokenVisualizer {
                 String outputNode = createNode("OutputStatement");
                 addEdge(parentNode, outputNode);
                 i++;
+                continue;
+            }
+
+            // === EXPRESSIONS ===
+            if (lexeme.matches("[a-zA-Z_][a-zA-Z0-9_]*") && i + 1 < tokens.size() && tokens.get(i + 1).getLexeme().matches("[=+\\-*/]") ) {
+                String exprNode = createNode("Expression");
+                addEdge(parentNode, exprNode);
+                addEdge(exprNode, createNode("Variable\n'" + lexeme + "'"));
+                addEdge(exprNode, createNode("Operator\n'" + tokens.get(i + 1).getLexeme() + "'"));
+
+                i += 2;
+                if (i < tokens.size()) {
+                    addEdge(exprNode, createNode("Value\n'" + tokens.get(i).getLexeme() + "'"));
+                    i++;
+                }
                 continue;
             }
 
