@@ -40,7 +40,7 @@ public class Parser {
                 // Process the current token through the automaton
                 if (automaton.processToken(currentToken)) {
                     // If token is valid for current state, perform transition
-                    if (automaton.transition(currentToken, rootNode)) {
+                    if (automaton.transition(currentToken)) {
                         advance(); // Only advance if a terminal was consumed
                         if (atEnd()) break;
                     }
@@ -54,8 +54,7 @@ public class Parser {
                         "Check syntax at this position"
                     );
     
-                    automaton.popState(rootNode);
-                    advance();
+                    automaton.popState();
                 }
             }
     

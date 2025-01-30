@@ -54,11 +54,15 @@ public class GrammarRule {
 
         // Class Modifiers
         rules.put(NonTerminal.CLASS_MODS, List.of(
-            List.of(NonTerminal.ACCESS_MOD, NonTerminal.CLASS_MODS), // Multiple access modifiers
-            List.of(NonTerminal.NON_ACCESS_MOD, NonTerminal.CLASS_MODS), // Multiple non-access modifiers
-            List.of(NonTerminal.ACCESS_MOD), // Single access modifier
-            List.of(NonTerminal.NON_ACCESS_MOD), // Single non-access modifier
-            List.of() // Empty case (no modifiers)
+            List.of(NonTerminal.ACCESS_MOD, NonTerminal.CLASS_MODS_TAIL), // Start with access modifier
+            List.of(NonTerminal.NON_ACCESS_MOD, NonTerminal.CLASS_MODS_TAIL), // Or non-access modifier
+            List.of() // Allow empty (no modifiers)
+        ));
+
+        rules.put(NonTerminal.CLASS_MODS_TAIL, List.of(
+            List.of(NonTerminal.ACCESS_MOD, NonTerminal.CLASS_MODS_TAIL), 
+            List.of(NonTerminal.NON_ACCESS_MOD, NonTerminal.CLASS_MODS_TAIL),
+            List.of() // Allow empty tail
         ));
 
         rules.put(NonTerminal.ACCESS_MOD, List.of(

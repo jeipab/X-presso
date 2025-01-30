@@ -133,7 +133,7 @@ public enum NonTerminal {
     FOR_LOOP,
     WHILE_LOOP,
     DO_WHILE_LOOP,
-    ENHANCED_FOR;
+    ENHANCED_FOR, CLASS_MODS_TAIL;
 
 
 

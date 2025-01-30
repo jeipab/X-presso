@@ -1,7 +1,4 @@
 digraph ParseTree {
     node [shape=ellipse, fontname="Arial"];
     node_0 [label="SP_PROG"];
-    node_1 [label="public"];
-    node_0 -> node_1;
-    node_2 [label="public"];
 }

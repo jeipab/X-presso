@@ -23,18 +23,10 @@ public class ParserAutomaton {
         System.out.println("Pushed state: " + state);
     }
 
-    public void popState(ParseTreeNode parent) {
+    public void popState() {
         if (!stateStack.isEmpty()) {
-            NonTerminal top = stateStack.peek();
-    
-            if (isProductionComplete(parent)) {
-                System.out.println("Popped state: " + top);
-                stateStack.pop();
-    
-                if (parent != null && parent.getParent() != null) {
-                    parent = parent.getParent();
-                }
-            }
+            NonTerminal top = stateStack.pop();
+            System.out.println("Popped state: " + top);
         }
     }
 
@@ -62,17 +54,21 @@ public class ParserAutomaton {
                 } else if (firstElement instanceof String) {
                     // If it's a terminal, it must match the token lexeme
                     if (((String) firstElement).equals(token.getLexeme())) {
-                        return transition(token, null);
+                        return transition(token);
                     }
                 }
+            } else {
+                // Handle empty production (used to exit recursive states like CLASS_MODS)
+                System.out.println("Using empty production for state: " + currentState);
+                popState();
+                return true;
             }
         }
-    
         // If no valid transition is found, return false
         return false;
     }
 
-    public boolean transition(Token token, ParseTreeNode parent) {
+    public boolean transition(Token token) {
         if (isStackEmpty()) return false;
     
         NonTerminal currentState = getCurrentState();
@@ -87,15 +83,11 @@ public class ParserAutomaton {
                     if (terminal.equals(token.getLexeme())) {
                         System.out.println("Matched terminal: " + terminal + " with token: " + token.getLexeme());
     
-                        // ✅ Ensure correct stack cleanup before resetting state
-                        System.out.println("Popping state: " + parent);
-                        popState(parent);
-                        if (parent != null) {
-                            parent.addChild(token.getLexeme());
-                            System.out.println("Added token to parent: " + token.getLexeme());
-                        }
+                        // Pop the current state after matching the terminal
+                        System.out.println("Popping state: " + currentState);
+                        popState(); // No need to pass parent here
     
-                        // ✅ Reset state only if stack is empty
+                        // Reset state only if stack is empty
                         if (isStackEmpty()) {
                             pushState(NonTerminal.SP_PROG);
                         }
@@ -104,14 +96,13 @@ public class ParserAutomaton {
                     }
                 } else if (firstElement instanceof NonTerminal) {
                     expandNonTerminal(currentState, production);
-                    return transition(token, parent);
+                    return transition(token);
                 }
             }
         }
     
         return false;
     }
-    
 
     private void expandNonTerminal(NonTerminal nonTerminal, List<Object> production) {
         System.out.println("Expanding " + nonTerminal + " with production: " + production);
@@ -132,29 +123,6 @@ public class ParserAutomaton {
                 throw new RuntimeException("Unexpected production rule element type: " + element.getClass());
             }
         }
-    }
-
-    private boolean isProductionComplete(ParseTreeNode node) {
-        if (node == null) return false;
-    
-        // Ensure the node represents a non-terminal
-        NonTerminal nodeType;
-        try {
-            nodeType = NonTerminal.valueOf(node.getValue());  // Convert node value back to NonTerminal
-        } catch (IllegalArgumentException e) {
-            return true;  // If it's not a NonTerminal, assume it's a terminal and is complete
-        }
-    
-        // Get expected children from the grammar
-        List<List<Object>> productions = GrammarRule.getProductions(nodeType);
-        int expectedChildren = productions.size(); // Expected number of productions
-    
-        return node.getChildren().size() >= expectedChildren;
-    }
-
-    private boolean hasRemainingChildren(ParseTreeNode node) {
-        if (node == null) return false;
-        return !node.getChildren().isEmpty();
     }
 
     public NonTerminal getCurrentState() {
