@@ -48,13 +48,16 @@ public class ParserAutomaton {
             if (!production.isEmpty()) {
                 Object firstElement = production.get(0);
     
-                if (firstElement instanceof NonTerminal) {
-                    expandNonTerminal(currentState, production);
-                    return true;
-                } else if (firstElement instanceof String) {
-                    // If it's a terminal, it must match the token lexeme
+                if (firstElement instanceof String) { 
+                    // ✅ Only expand if the terminal matches the token
                     if (((String) firstElement).equals(token.getLexeme())) {
-                        return transition(token);
+                        return transition(token); // Ensure token is consumed
+                    }
+                } else if (firstElement instanceof NonTerminal) {
+                    // ✅ Only expand if the token belongs to this nonterminal
+                    if (canExpand((NonTerminal) firstElement, token)) {
+                        expandNonTerminal(currentState, production);
+                        return true; // Expansion happens, but no token consumed yet
                     }
                 }
             } else {
@@ -64,6 +67,7 @@ public class ParserAutomaton {
                 return true;
             }
         }
+    
         // If no valid transition is found, return false
         return false;
     }
@@ -106,7 +110,7 @@ public class ParserAutomaton {
 
     private void expandNonTerminal(NonTerminal nonTerminal, List<Object> production) {
         System.out.println("Expanding " + nonTerminal + " with production: " + production);
-    
+
         // Push the production elements in reverse order (right to left)
         for (int i = production.size() - 1; i >= 0; i--) {
             Object element = production.get(i);
@@ -123,6 +127,30 @@ public class ParserAutomaton {
                 throw new RuntimeException("Unexpected production rule element type: " + element.getClass());
             }
         }
+    }
+
+    private boolean canExpand(NonTerminal nonTerminal, Token token) {
+        List<List<Object>> productions = GrammarRule.getProductions(nonTerminal);
+    
+        for (List<Object> production : productions) {
+            if (!production.isEmpty()) {
+                Object firstElement = production.get(0);
+    
+                if (firstElement instanceof String) {
+                    // ✅ If token matches a terminal in the first position, allow expansion
+                    if (((String) firstElement).equals(token.getLexeme())) {
+                        return true;
+                    }
+                } else if (firstElement instanceof NonTerminal) {
+                    // ✅ If it's a non-terminal, recursively check if it can expand to match the token
+                    if (canExpand((NonTerminal) firstElement, token)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        return false; // ❌ Avoid expansion if no match is found
     }
 
     public NonTerminal getCurrentState() {
