@@ -1,0 +1,16 @@
+digraph AbstractSyntaxTree {
+    node [shape=ellipse];
+
+    node0 [label="Program"];
+    node1 [label="Declaration"];
+    node0 -> node1;
+    node2 [label="Variable
+'num'"];
+    node1 -> node2;
+    node3 [label="Operator
+'='"];
+    node1 -> node3;
+    node4 [label="Value
+';'"];
+    node1 -> node4;
+}

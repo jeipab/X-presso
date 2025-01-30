@@ -78,6 +78,12 @@ public class TokenVisualizer {
             if (i + 2 < tokens.size() && tokens.get(i + 1).getLexeme().equals("(")) {
                 String functionNode = createNode("FunctionDecl");
                 addEdge(parentNode, functionNode);
+
+                // Add return type if available
+                if (i > 0 && isDataType(tokens.get(i - 1).getLexeme())) {
+                    addEdge(functionNode, createNode("ReturnType\n'" + escapeString(tokens.get(i - 1).getLexeme()) + "'"));
+                }
+
                 addEdge(functionNode, createNode("Function\n'" + escapeString(lexeme) + "'"));
 
                 i += 2;
@@ -85,8 +91,18 @@ public class TokenVisualizer {
                 addEdge(functionNode, paramNode);
 
                 while (i < tokens.size() && !tokens.get(i).getLexeme().equals(")")) {
-                    addEdge(paramNode, createNode("Param\n'" + escapeString(tokens.get(i).getLexeme()) + "'"));
-                    i++;
+                    if (isDataType(tokens.get(i).getLexeme())) {
+                        String dataTypeNode = createNode("DataType\n'" + escapeString(tokens.get(i).getLexeme()) + "'");
+                        addEdge(paramNode, dataTypeNode);
+                        i++;
+                        if (i < tokens.size()) {
+                            addEdge(dataTypeNode, createNode("Param\n'" + escapeString(tokens.get(i).getLexeme()) + "'"));
+                            i++;
+                        }
+                    } else {
+                        addEdge(paramNode, createNode("Param\n'" + escapeString(tokens.get(i).getLexeme()) + "'"));
+                        i++;
+                    }
                 }
                 i++; // Move past `)`
 
@@ -103,6 +119,11 @@ public class TokenVisualizer {
             if (i + 1 < tokens.size() && tokens.get(i + 1).getLexeme().matches("=|:=")) {
                 String declNode = createNode("Declaration");
                 addEdge(parentNode, declNode);
+
+                if (i > 0 && isDataType(tokens.get(i - 1).getLexeme())) {
+                    addEdge(declNode, createNode("DataType\n'" + escapeString(tokens.get(i - 1).getLexeme()) + "'"));
+                }
+
                 addEdge(declNode, createNode("Variable\n'" + escapeString(lexeme) + "'"));
                 addEdge(declNode, createNode("Operator\n'" + escapeString(tokens.get(i + 1).getLexeme()) + "'"));
 
@@ -261,5 +282,9 @@ public class TokenVisualizer {
                 .replace("\n", "\\n")
                 .replace("\r", "\\r")
                 .replace("\t", "\\t");
+    }
+
+    private boolean isDataType(String lexeme) {
+        return lexeme.matches("int|char|bool|str|float|double|long|byte|Date|Frac|Complex");
     }
 }
