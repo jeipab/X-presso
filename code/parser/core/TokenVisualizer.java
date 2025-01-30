@@ -53,7 +53,7 @@ public class TokenVisualizer {
                 i++;
 
                 if (i < tokens.size()) {
-                    addEdge(classNode, createNode("Identifier\n'" + tokens.get(i).getLexeme() + "'"));
+                    addEdge(classNode, createNode("Identifier\n'" + escapeString(tokens.get(i).getLexeme()) + "'"));
                     i++;
                 }
 
@@ -61,7 +61,7 @@ public class TokenVisualizer {
                     i++;
                     String inheritNode = createNode("Inheritance");
                     addEdge(classNode, inheritNode);
-                    addEdge(inheritNode, createNode("ParentClass\n'" + tokens.get(i).getLexeme() + "'"));
+                    addEdge(inheritNode, createNode("ParentClass\n'" + escapeString(tokens.get(i).getLexeme()) + "'"));
                     i++;
                 }
 
@@ -78,17 +78,24 @@ public class TokenVisualizer {
             if (i + 2 < tokens.size() && tokens.get(i + 1).getLexeme().equals("(")) {
                 String functionNode = createNode("FunctionDecl");
                 addEdge(parentNode, functionNode);
-                addEdge(functionNode, createNode("Function\n'" + lexeme + "'"));
+                addEdge(functionNode, createNode("Function\n'" + escapeString(lexeme) + "'"));
 
                 i += 2;
                 String paramNode = createNode("Parameters");
                 addEdge(functionNode, paramNode);
 
                 while (i < tokens.size() && !tokens.get(i).getLexeme().equals(")")) {
-                    addEdge(paramNode, createNode("Param\n'" + tokens.get(i).getLexeme() + "'"));
+                    addEdge(paramNode, createNode("Param\n'" + escapeString(tokens.get(i).getLexeme()) + "'"));
                     i++;
                 }
                 i++; // Move past `)`
+
+                if (i < tokens.size() && tokens.get(i).getLexeme().equals("{")) {
+                    String bodyNode = createNode("FunctionBody");
+                    addEdge(functionNode, bodyNode);
+                    scopeStack.push(bodyNode);
+                    i++;
+                }
                 continue;
             }
 
@@ -96,12 +103,12 @@ public class TokenVisualizer {
             if (i + 1 < tokens.size() && tokens.get(i + 1).getLexeme().matches("=|:=")) {
                 String declNode = createNode("Declaration");
                 addEdge(parentNode, declNode);
-                addEdge(declNode, createNode("Variable\n'" + lexeme + "'"));
-                addEdge(declNode, createNode("Operator\n'" + tokens.get(i + 1).getLexeme() + "'"));
+                addEdge(declNode, createNode("Variable\n'" + escapeString(lexeme) + "'"));
+                addEdge(declNode, createNode("Operator\n'" + escapeString(tokens.get(i + 1).getLexeme()) + "'"));
 
                 i += 2;
                 if (i < tokens.size()) {
-                    addEdge(declNode, createNode("Value\n'" + tokens.get(i).getLexeme() + "'"));
+                    addEdge(declNode, createNode("Value\n'" + escapeString(tokens.get(i).getLexeme()) + "'"));
                     i++;
                 }
                 continue;
@@ -118,7 +125,7 @@ public class TokenVisualizer {
                     addEdge(ifNode, conditionNode);
                     i++;
                     while (i < tokens.size() && !tokens.get(i).getLexeme().equals(")")) {
-                        addEdge(conditionNode, createNode("Expr\n'" + tokens.get(i).getLexeme() + "'"));
+                        addEdge(conditionNode, createNode("Expr\n'" + escapeString(tokens.get(i).getLexeme()) + "'"));
                         i++;
                     }
                     i++;
@@ -127,6 +134,20 @@ public class TokenVisualizer {
                 if (i < tokens.size() && tokens.get(i).getLexeme().equals("{")) {
                     String blockNode = createNode("IfBlock");
                     addEdge(ifNode, blockNode);
+                    scopeStack.push(blockNode);
+                    i++;
+                }
+                continue;
+            }
+
+            // === ELSE CLAUSES ===
+            if (lexeme.equals("else")) {
+                String elseNode = createNode("ElseStatement");
+                addEdge(parentNode, elseNode);
+                i++;
+                if (i < tokens.size() && tokens.get(i).getLexeme().equals("{")) {
+                    String blockNode = createNode("ElseBlock");
+                    addEdge(elseNode, blockNode);
                     scopeStack.push(blockNode);
                     i++;
                 }
@@ -144,7 +165,7 @@ public class TokenVisualizer {
                     addEdge(loopNode, conditionNode);
                     i++;
                     while (i < tokens.size() && !tokens.get(i).getLexeme().equals(")")) {
-                        addEdge(conditionNode, createNode("Expr\n'" + tokens.get(i).getLexeme() + "'"));
+                        addEdge(conditionNode, createNode("Expr\n'" + escapeString(tokens.get(i).getLexeme()) + "'"));
                         i++;
                     }
                     i++;
@@ -159,18 +180,41 @@ public class TokenVisualizer {
                 continue;
             }
 
-            // === INPUT & OUTPUT ===
+            // === INPUT ===
             if (lexeme.equals("Input::get")) {
                 String inputNode = createNode("InputStatement");
                 addEdge(parentNode, inputNode);
-                i++;
+
+                // Process Input::get components
+                if (i + 1 < tokens.size() && tokens.get(i + 1).getLexeme().equals("(")) {
+                    i += 2; // Skip Input::get and (
+                    String promptNode = createNode("PromptString");
+                    addEdge(inputNode, promptNode);
+
+                    if (i < tokens.size() && !tokens.get(i).getLexeme().equals(")")) {
+                        addEdge(promptNode, createNode("String\n'" + escapeString(tokens.get(i).getLexeme()) + "'"));
+                        i++;
+                    }
+                    i++; // Skip )
+                }
                 continue;
             }
 
+            // === OUTPUT ===
             if (lexeme.equals("Output::print")) {
                 String outputNode = createNode("OutputStatement");
                 addEdge(parentNode, outputNode);
-                i++;
+                if (i + 2 < tokens.size() && tokens.get(i + 1).getLexeme().equals("(")) {
+                    i += 2; // Skip Output::print and (
+                    String contentNode = createNode("Content");
+                    addEdge(outputNode, contentNode);
+
+                    while (i < tokens.size() && !tokens.get(i).getLexeme().equals(")")) {
+                        addEdge(contentNode, createNode("Expr\n'" + escapeString(tokens.get(i).getLexeme()) + "'"));
+                        i++;
+                    }
+                    i++; // Skip )
+                }
                 continue;
             }
 
@@ -178,12 +222,12 @@ public class TokenVisualizer {
             if (lexeme.matches("[a-zA-Z_][a-zA-Z0-9_]*") && i + 1 < tokens.size() && tokens.get(i + 1).getLexeme().matches("[=+\\-*/]") ) {
                 String exprNode = createNode("Expression");
                 addEdge(parentNode, exprNode);
-                addEdge(exprNode, createNode("Variable\n'" + lexeme + "'"));
-                addEdge(exprNode, createNode("Operator\n'" + tokens.get(i + 1).getLexeme() + "'"));
+                addEdge(exprNode, createNode("Variable\n'" + escapeString(lexeme) + "'"));
+                addEdge(exprNode, createNode("Operator\n'" + escapeString(tokens.get(i + 1).getLexeme()) + "'"));
 
                 i += 2;
                 if (i < tokens.size()) {
-                    addEdge(exprNode, createNode("Value\n'" + tokens.get(i).getLexeme() + "'"));
+                    addEdge(exprNode, createNode("Value\n'" + escapeString(tokens.get(i).getLexeme()) + "'"));
                     i++;
                 }
                 continue;
