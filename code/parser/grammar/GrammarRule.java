@@ -18,7 +18,6 @@ public class GrammarRule {
         // Comprehensive class declaration rules
         rules.put(NonTerminal.CLASS, List.of(
             // Full structure with optional components
-            
             List.of(NonTerminal.CLASS_MODS, "class", NonTerminal.IDENTIFIER, NonTerminal.CLASS_INHERIT, NonTerminal.INTERFACE_INHERIT, "{", NonTerminal.CLASS_BODY, "}"),
 
             // Without interface inheritance

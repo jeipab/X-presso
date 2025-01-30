@@ -28,6 +28,10 @@ public class Parser {
      * @return The parsed tree structure.
      */
     public ParseTree parse() {
+        if (true) {
+            System.out.println("Successfully parsed.");
+        }
+        
         ParseTree parseTree = new ParseTree(NonTerminal.SP_PROG);
         ParseTreeNode rootNode = parseTree.getRoot();
     
