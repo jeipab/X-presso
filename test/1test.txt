@@ -1,1 +1,1 @@
-Output::print("Your" + input)
+Output::print("Your" + input);

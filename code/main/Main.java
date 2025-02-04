@@ -15,8 +15,6 @@ import java.util.stream.Collectors;
 import lexer.Lexer;
 import lexer.Token;
 import lexer.TokenType;
-import parser.core.Parser;
-import parser.core.TokenVisualizer;
 import util.ErrorHandler;
 import util.SourceReader;
 
@@ -33,7 +31,6 @@ public class Main {
     private boolean verbose;
     private String outputFormat;
     private boolean outputToFile;
-    private Parser parser;
     
     public Main() {
         this.scanner = new Scanner(System.in);
@@ -235,11 +232,6 @@ public class Main {
 
             // 5. Filter whitespace before parsing
             List<Token> filteredTokens = filterWhitespaceTokens(tokens);
-
-            // 6. Perform syntax analysis with filtered tokens
-            performSyntaxAnalysis(filteredTokens);
-            this.parser = new Parser(filteredTokens);
-            parser.parse();
         } catch (Exception e) {
             throw new IOException("Error processing file: " + e.getMessage(), e);
         }
@@ -635,25 +627,5 @@ public class Main {
             .filter(token -> token.getType() != TokenType.WHITESPACE && 
                             token.getType() != TokenType.COMMENT) // Also filter comments if desired
             .collect(Collectors.toList());
-    }
-
-    /**
-     * Performs syntax analysis using the filtered token list
-     */
-    private static void performSyntaxAnalysis(List<Token> tokens) {
-        System.out.println("\nStarting Syntax Analysis...");
-        System.out.println("==========================");
-
-        TokenVisualizer tokenVisualizer = new TokenVisualizer();
-        String tokenVisualization = tokenVisualizer.convertTokensToVizFormat(tokens);
-
-        // Save the visualization to a file
-        String tokenVizFilePath = "ast/token_visualization.dot";
-        try (FileWriter writer = new FileWriter(tokenVizFilePath)) {
-            writer.write(tokenVisualization);
-            System.out.println("Token visualization successfully saved at: " + tokenVizFilePath);
-        } catch (IOException e) {
-            System.err.println("Error saving token visualization: " + e.getMessage());
-        }
     }
 }
