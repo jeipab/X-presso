@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import lexer.Token;
-import parser.core.RDP;
+import parser.RDP;
 
 public class SyntaxErrorHandler {
     private final List<SyntaxError> errors;

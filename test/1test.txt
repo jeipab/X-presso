@@ -1,1 +1,3 @@
-Output::print("Your" + input);
+public class Test {
+    Output::print("Your" + input);
+}

@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import lexer.Lexer;
 import lexer.Token;
 import lexer.TokenType;
+import parser.RDP;
 import util.ErrorHandler;
 import util.SourceReader;
 
@@ -223,15 +224,19 @@ public class Main {
         try (SourceReader reader = new SourceReader(filePath, StandardCharsets.UTF_8)) {
             // 2. Create lexer and tokenize
             List<Token> tokens = tokenizeSource(reader);
-            
-            // 3. Output tokens
-            outputTokens(tokens);
-            
-            // 4. Print token summary
-            printTokenSummary(tokens);
 
-            // 5. Filter whitespace before parsing
+            // 3. Filter whitespace tokens before parsing
             List<Token> filteredTokens = filterWhitespaceTokens(tokens);
+
+            // 4. Pass filtered tokens to the parser
+            RDP parser = new RDP(filteredTokens);
+            parser.parse();  // Perform syntax analysis
+
+            // 5. Output tokens after parsing
+            outputTokens(filteredTokens);
+
+            // 6. Print token summary
+            printTokenSummary(filteredTokens);
         } catch (Exception e) {
             throw new IOException("Error processing file: " + e.getMessage(), e);
         }
