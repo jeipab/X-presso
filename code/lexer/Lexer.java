@@ -432,6 +432,50 @@ public class Lexer {
             }
         }
 
+        // Handle ternary operator '? ... :'
+        if (firstChar == '?') {
+            startLine = reader.getLine();
+            startColumn = reader.getColumn();
+
+            // Add '?' as a separate token
+            tokens.add(new Token(TokenType.TERNARY_OP, "?", startLine, startColumn));
+
+            // Process the expression after '?'
+            while (reader.peek() != ':' && reader.peek() != SourceReader.EOF) {
+                nextChar = reader.readNext(); // Advance character
+
+                // Handle identifiers, literals, and valid expressions
+                if (Character.isLetterOrDigit(nextChar) || nextChar == '_') {
+                    handleIdentifierOrKeyword(nextChar);
+                } else if (nextChar == '(' || nextChar == '[' || nextChar == '{') {
+                    handleDelimiterOrBracket(nextChar);
+                } else if (nextChar == '"') {
+                    handleStringLiteral();
+                } else if (nextChar == '\'') {
+                    handleCharLiteral();
+                } else if (isOperatorSymbol(nextChar)) {
+                    handleOperator(nextChar);
+                }
+
+                // Stop when ':' is reached
+                if (reader.peek() == ':') {
+                    break;
+                }
+            }
+
+            // Ensure ':' follows the ternary expression
+            if (reader.peek() == ':') {
+                reader.readNext(); // Consume ':'
+                tokens.add(new Token(TokenType.TERNARY_OP, ":", reader.getLine(), reader.getColumn()));
+            } else {
+                errorHandler.reportError(ErrorHandler.ErrorType.INVALID_OPERATOR,
+                    "Malformed ternary expression, missing ':'.", startLine, startColumn,
+                    "Ensure ternary operator follows the pattern `? expression :`.");
+            }
+
+            return;
+        }
+
         // Handle ^| as a bitwise operator
         if (firstChar == '^' && reader.peek() == '|') {
             operator.append(reader.readNext());  // Consume the '|'

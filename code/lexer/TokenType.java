@@ -21,6 +21,7 @@ public enum TokenType {
      METHOD_OP,
      LOOP_OP,
      INHERIT_OP,
+     TERNARY_OP,
 
      // Literals
      INT_LIT,
