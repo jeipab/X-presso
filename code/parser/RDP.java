@@ -4,7 +4,6 @@ import lexer.Token;
 import lexer.TokenType;
 import util.SyntaxErrorHandler;
 import java.util.List;
-import java.util.ArrayList;
 
 /**
  * Comprehensive Recursive Descent Parser implementing the complete grammar
@@ -35,6 +34,8 @@ public class RDP {
                         peek().getColumn(),
                         "Start with a class definition"
                     );
+                    // Move to next token before synchronizing
+                    advance();
                     synchronize();
                 }
             }
@@ -66,6 +67,8 @@ public class RDP {
                     if (peek().getLexeme().equals("class")) {
                         return;
                     }
+                    break;
+                default:
                     break;
             }
             advance();
@@ -217,8 +220,8 @@ public class RDP {
         if (!parseRelational()) return false;
 
         while (match(TokenType.REL_OP) && 
-              (previous().getLexeme().equals("==") || 
-               previous().getLexeme().equals("!="))) {
+                (previous().getLexeme().equals("==") || 
+                previous().getLexeme().equals("!="))) {
             if (!parseRelational()) {
                 errorHandler.reportError(
                     "Invalid right operand for equality comparison",
@@ -241,10 +244,10 @@ public class RDP {
         if (!parseBitwiseOr()) return false;
 
         while (match(TokenType.REL_OP) && 
-              (previous().getLexeme().equals("<") || 
-               previous().getLexeme().equals(">") ||
-               previous().getLexeme().equals("<=") || 
-               previous().getLexeme().equals(">="))) {
+                (previous().getLexeme().equals("<") || 
+                previous().getLexeme().equals(">") ||
+                previous().getLexeme().equals("<=") || 
+                previous().getLexeme().equals(">="))) {
             if (!parseBitwiseOr()) {
                 errorHandler.reportError(
                     "Invalid right operand for relational comparison",
@@ -325,9 +328,9 @@ public class RDP {
         if (!parseAdditive()) return false;
 
         while (match(TokenType.BIT_OP) && 
-              (previous().getLexeme().equals("<<") || 
-               previous().getLexeme().equals(">>") ||
-               previous().getLexeme().equals(">>>"))) {
+                (previous().getLexeme().equals("<<") || 
+                previous().getLexeme().equals(">>") ||
+                previous().getLexeme().equals(">>>"))) {
             if (!parseAdditive()) {
                 errorHandler.reportError(
                     "Invalid right operand for shift operator",
@@ -350,8 +353,8 @@ public class RDP {
         if (!parseMultiplicative()) return false;
 
         while (match(TokenType.ARITHMETIC_OP) && 
-              (previous().getLexeme().equals("+") || 
-               previous().getLexeme().equals("-"))) {
+                (previous().getLexeme().equals("+") || 
+                previous().getLexeme().equals("-"))) {
             if (!parseMultiplicative()) {
                 errorHandler.reportError(
                     "Invalid right operand for additive operator",
@@ -374,9 +377,9 @@ public class RDP {
         if (!parseExponential()) return false;
 
         while (match(TokenType.ARITHMETIC_OP) && 
-              (previous().getLexeme().equals("*") || 
-               previous().getLexeme().equals("/") ||
-               previous().getLexeme().equals("%"))) {
+                (previous().getLexeme().equals("*") || 
+                previous().getLexeme().equals("/") ||
+                previous().getLexeme().equals("%"))) {
             if (!parseExponential()) {
                 errorHandler.reportError(
                     "Invalid right operand for multiplicative operator",
@@ -443,9 +446,9 @@ public class RDP {
         if (!parseAccess()) return false;
 
         while (match(TokenType.UNARY_OP) && 
-              (previous().getLexeme().equals("++") || 
-               previous().getLexeme().equals("--") ||
-               previous().getLexeme().equals("**"))) {
+                (previous().getLexeme().equals("++") || 
+                previous().getLexeme().equals("--") ||
+                previous().getLexeme().equals("**"))) {
             // Postfix operators don't need right operands
             continue;
         }
@@ -511,6 +514,44 @@ public class RDP {
         return false;
     }
 
+    private boolean parseBlock() {
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals("{")) {
+            errorHandler.reportError(
+                "Expected '{' to begin block",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add opening brace"
+            );
+            return false;
+        }
+    
+        enterBlock();
+        while (!check(TokenType.DELIM) || !peek().getLexeme().equals("}")) {
+            if (!parseStatement()) {
+                errorHandler.reportError(
+                    "Invalid statement in block",
+                    peek().getLine(),
+                    peek().getColumn(),
+                    "Provide valid statements inside block"
+                );
+                synchronize();
+            }
+        }
+    
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals("}")) {
+            errorHandler.reportError(
+                "Expected '}' to close block",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add closing brace"
+            );
+            return false;
+        }
+    
+        exitBlock();
+        return true;
+    }
+
     // ======== Statement Parsing ========
 
     /**
@@ -548,35 +589,588 @@ public class RDP {
                         return true;
                 }
             }
-
+    
+            // Inspect blocks
+            if (match(TokenType.RESERVED) && previous().getLexeme().equals("inspect")) {
+                return parseInspectBlock();
+            }
+    
             // Declaration statements
             if (parseSingleDeclaration() || parseMultiDeclaration()) {
                 return true;
             }
-
+    
             // Input/Output statements
             if (parseInputStatement() || parseOutputStatement()) {
                 return true;
             }
-
+    
+            // Export expressions
+            if (match(TokenType.IDENTIFIER)) {
+                Token identifier = previous();
+                if (match(TokenType.METHOD_OP) && previous().getLexeme().equals(".")) {
+                    if (match(TokenType.RESERVED) && previous().getLexeme().equals("export_as")) {
+                        // Reset position if not a valid export expression
+                        int startPos = current - 3;
+                        if (!parseExportExpression()) {
+                            current = startPos;
+                        } else {
+                            return true;
+                        }
+                    }
+                }
+                // Reset position if not an export
+                current = current - 2;
+            }
+    
             // Assignment statements
             if (parseAssignmentStatement()) {
                 return true;
             }
-
+    
             // Filter expressions and data operations
             if (parseFilterExpression() || parseValidateExpression() || 
                 parseDateFunction() || parseModifyBlock() ||
                 parseToMixedExpression() || parseAliasDeclaration()) {
                 return true;
             }
-
+    
             return false;
-
+    
         } catch (Exception e) {
             synchronize();
             return false;
         }
+    }
+
+    /**
+     * Parses a valid expression inside filter/select clauses.
+     */
+    private boolean parseQueryExpression() {
+        if (!parseExpression()) {
+            errorHandler.reportError(
+                "Invalid expression inside query clause",
+                peek().getLine(),
+                peek().getColumn(),
+                "Provide a valid filter or selection expression"
+            );
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Parses the order_by clause in query statements.
+     * <Order_Clause> ::= "order_by" "(" <Identifier> ["," <Sort_Order>] ")"
+     */
+    private boolean parseOrderByClause() {
+        if (!match(TokenType.KEYWORD) || !previous().getLexeme().equals("order_by")) {
+            return false;
+        }
+
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals("(")) {
+            errorHandler.reportError(
+                "Expected '(' after 'order_by'",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add opening parenthesis"
+            );
+            return false;
+        }
+
+        if (!match(TokenType.IDENTIFIER)) {
+            errorHandler.reportError(
+                "Expected identifier (column name) in order_by",
+                peek().getLine(),
+                peek().getColumn(),
+                "Provide a valid column identifier"
+            );
+            return false;
+        }
+
+        // Optional sorting order (ASC or DESC)
+        if (match(TokenType.DELIM) && previous().getLexeme().equals(",")) {
+            if (!match(TokenType.IDENTIFIER) || 
+                !(previous().getLexeme().equals("asc") || previous().getLexeme().equals("desc"))) {
+                errorHandler.reportError(
+                    "Expected sorting order ('asc' or 'desc')",
+                    peek().getLine(),
+                    peek().getColumn(),
+                    "Provide either 'asc' or 'desc'"
+                );
+                return false;
+            }
+        }
+
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals(")")) {
+            errorHandler.reportError(
+                "Expected ')' after order_by parameters",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add closing parenthesis"
+            );
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Parses the limit clause in query statements.
+     * <Limit_Clause> ::= "limit" "(" <Int_Lit> ")"
+     */
+    private boolean parseLimitClause() {
+        if (!match(TokenType.KEYWORD) || !previous().getLexeme().equals("limit")) {
+            return false;
+        }
+
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals("(")) {
+            errorHandler.reportError(
+                "Expected '(' after 'limit'",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add opening parenthesis"
+            );
+            return false;
+        }
+
+        if (!match(TokenType.INT_LIT)) {
+            errorHandler.reportError(
+                "Expected integer value in limit",
+                peek().getLine(),
+                peek().getColumn(),
+                "Provide a numeric limit value"
+            );
+            return false;
+        }
+
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals(")")) {
+            errorHandler.reportError(
+                "Expected ')' after limit value",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add closing parenthesis"
+            );
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean parseIfStatement() {
+        if (!match(TokenType.KEYWORD) || !previous().getLexeme().equals("if")) {
+            return false;
+        }
+    
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals("(")) {
+            errorHandler.reportError(
+                "Expected '(' after 'if'",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add opening parenthesis"
+            );
+            return false;
+        }
+    
+        if (!parseExpression()) {
+            errorHandler.reportError(
+                "Invalid condition in if statement",
+                peek().getLine(),
+                peek().getColumn(),
+                "Provide a valid boolean expression"
+            );
+            return false;
+        }
+    
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals(")")) {
+            errorHandler.reportError(
+                "Expected ')' after condition",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add closing parenthesis"
+            );
+            return false;
+        }
+    
+        if (!parseBlock()) {
+            errorHandler.reportError(
+                "Invalid body in if statement",
+                peek().getLine(),
+                peek().getColumn(),
+                "Provide a valid block of statements"
+            );
+            return false;
+        }
+    
+        return true;
+    }
+    
+    private boolean parseSwitchStatement() {
+        if (!match(TokenType.KEYWORD) || (!previous().getLexeme().equals("switch") &&
+                                            !previous().getLexeme().equals("switch-fall"))) {
+            return false;
+        }
+    
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals("(")) {
+            errorHandler.reportError(
+                "Expected '(' after 'switch'",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add opening parenthesis"
+            );
+            return false;
+        }
+    
+        if (!parseExpression()) {
+            errorHandler.reportError(
+                "Invalid switch condition",
+                peek().getLine(),
+                peek().getColumn(),
+                "Provide a valid expression"
+            );
+            return false;
+        }
+    
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals(")")) {
+            errorHandler.reportError(
+                "Expected ')' after switch condition",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add closing parenthesis"
+            );
+            return false;
+        }
+    
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals("{")) {
+            errorHandler.reportError(
+                "Expected '{' to open switch block",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add opening brace"
+            );
+            return false;
+        }
+    
+        enterBlock();
+        while (!check(TokenType.DELIM) || !peek().getLexeme().equals("}")) {
+            if (!parseSwitchCase()) {
+                errorHandler.reportError(
+                    "Invalid case statement in switch",
+                    peek().getLine(),
+                    peek().getColumn(),
+                    "Provide a valid case or default statement"
+                );
+                synchronize();
+            }
+        }
+    
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals("}")) {
+            errorHandler.reportError(
+                "Expected '}' to close switch block",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add closing brace"
+            );
+            return false;
+        }
+    
+        exitBlock();
+        return true;
+    }
+
+    private boolean parseSwitchCase() {
+        if (match(TokenType.KEYWORD)) {
+            String lexeme = previous().getLexeme();
+            if (lexeme.equals("case")) {
+                if (!match(TokenType.STR_LIT) && !match(TokenType.INT_LIT) &&
+                    !match(TokenType.CHAR_LIT) && !match(TokenType.FLOAT_LIT)) {
+                    errorHandler.reportError(
+                        "Invalid case value",
+                        peek().getLine(),
+                        peek().getColumn(),
+                        "Provide a valid case literal"
+                    );
+                    return false;
+                }
+    
+                if (!match(TokenType.PUNC_DELIM) || !previous().getLexeme().equals(":")) {
+                    errorHandler.reportError(
+                        "Expected ':' after case value",
+                        peek().getLine(),
+                        peek().getColumn(),
+                        "Add colon to separate case value and block"
+                    );
+                    return false;
+                }
+    
+                return parseBlock();
+            } else if (lexeme.equals("default")) {
+                if (!match(TokenType.PUNC_DELIM) || !previous().getLexeme().equals(":")) {
+                    errorHandler.reportError(
+                        "Expected ':' after 'default'",
+                        peek().getLine(),
+                        peek().getColumn(),
+                        "Add colon to separate default case and block"
+                    );
+                    return false;
+                }
+    
+                return parseBlock();
+            }
+        }
+    
+        return false;
+    }
+    
+    private boolean parseWhileLoop() {
+        if (!match(TokenType.KEYWORD) || !previous().getLexeme().equals("while")) {
+            return false;
+        }
+    
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals("(")) {
+            errorHandler.reportError(
+                "Expected '(' after 'while'",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add opening parenthesis"
+            );
+            return false;
+        }
+    
+        if (!parseExpression()) {
+            errorHandler.reportError(
+                "Invalid condition in while loop",
+                peek().getLine(),
+                peek().getColumn(),
+                "Provide a valid boolean expression"
+            );
+            return false;
+        }
+    
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals(")")) {
+            errorHandler.reportError(
+                "Expected ')' after condition",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add closing parenthesis"
+            );
+            return false;
+        }
+    
+        return parseBlock();
+    }    
+
+    private boolean parseDoWhileLoop() {
+        if (!match(TokenType.KEYWORD) || !previous().getLexeme().equals("do")) {
+            return false;
+        }
+    
+        if (!parseBlock()) {
+            errorHandler.reportError(
+                "Invalid do-while loop body",
+                peek().getLine(),
+                peek().getColumn(),
+                "Provide a valid block of statements"
+            );
+            return false;
+        }
+    
+        if (!match(TokenType.KEYWORD) || !previous().getLexeme().equals("while")) {
+            errorHandler.reportError(
+                "Expected 'while' after do-while block",
+                peek().getLine(),
+                peek().getColumn(),
+                "Use 'while' to close the loop"
+            );
+            return false;
+        }
+    
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals("(")) {
+            errorHandler.reportError(
+                "Expected '(' after 'while'",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add opening parenthesis"
+            );
+            return false;
+        }
+    
+        if (!parseExpression()) {
+            errorHandler.reportError(
+                "Invalid condition in do-while loop",
+                peek().getLine(),
+                peek().getColumn(),
+                "Provide a valid boolean expression"
+            );
+            return false;
+        }
+    
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals(")")) {
+            errorHandler.reportError(
+                "Expected ')' after condition",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add closing parenthesis"
+            );
+            return false;
+        }
+    
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals(";")) {
+            errorHandler.reportError(
+                "Expected ';' after do-while loop",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add semicolon after loop condition"
+            );
+            return false;
+        }
+    
+        return true;
+    }
+
+    private boolean parseForLoop() {
+        if (!match(TokenType.KEYWORD) || !previous().getLexeme().equals("for")) {
+            return false;
+        }
+    
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals("(")) {
+            errorHandler.reportError(
+                "Expected '(' after 'for'",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add opening parenthesis"
+            );
+            return false;
+        }
+    
+        // Optional initialization statement
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals(";")) {
+            if (!parseAssignmentStatement()) {
+                errorHandler.reportError(
+                    "Invalid initialization in for loop",
+                    peek().getLine(),
+                    peek().getColumn(),
+                    "Provide a valid initialization statement"
+                );
+                return false;
+            }
+        }
+    
+        // Condition expression
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals(";")) {
+            if (!parseExpression()) {
+                errorHandler.reportError(
+                    "Invalid condition in for loop",
+                    peek().getLine(),
+                    peek().getColumn(),
+                    "Provide a valid boolean expression"
+                );
+                return false;
+            }
+        }
+    
+        // Optional increment statement
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals(")")) {
+            if (!parseAssignmentStatement()) {
+                errorHandler.reportError(
+                    "Invalid update statement in for loop",
+                    peek().getLine(),
+                    peek().getColumn(),
+                    "Provide a valid update statement"
+                );
+                return false;
+            }
+        }
+    
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals(")")) {
+            errorHandler.reportError(
+                "Expected ')' after for loop header",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add closing parenthesis"
+            );
+            return false;
+        }
+    
+        return parseBlock();
+    }
+
+    private boolean parseEnhancedForLoop() {
+        if (!match(TokenType.KEYWORD) || !previous().getLexeme().equals("do")) {
+            return false;
+        }
+    
+        if (!match(TokenType.KEYWORD) || !previous().getLexeme().equals("for")) {
+            errorHandler.reportError(
+                "Expected 'for' after 'do'",
+                peek().getLine(),
+                peek().getColumn(),
+                "Use 'do for' for enhanced loop"
+            );
+            return false;
+        }
+    
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals("(")) {
+            errorHandler.reportError(
+                "Expected '(' after 'do for'",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add opening parenthesis"
+            );
+            return false;
+        }
+    
+        if (!parseDataType()) {
+            errorHandler.reportError(
+                "Expected type in enhanced for loop",
+                peek().getLine(),
+                peek().getColumn(),
+                "Provide a valid data type"
+            );
+            return false;
+        }
+    
+        if (!match(TokenType.IDENTIFIER)) {
+            errorHandler.reportError(
+                "Expected loop variable in enhanced for loop",
+                peek().getLine(),
+                peek().getColumn(),
+                "Provide a valid identifier"
+            );
+            return false;
+        }
+    
+        if (!match(TokenType.PUNC_DELIM) || !previous().getLexeme().equals(":")) {
+            errorHandler.reportError(
+                "Expected ':' in enhanced for loop",
+                peek().getLine(),
+                peek().getColumn(),
+                "Use ':' to iterate over collection"
+            );
+            return false;
+        }
+    
+        if (!parseExpression()) {
+            errorHandler.reportError(
+                "Invalid iterable in enhanced for loop",
+                peek().getLine(),
+                peek().getColumn(),
+                "Provide a valid collection or range"
+            );
+            return false;
+        }
+    
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals(")")) {
+            errorHandler.reportError(
+                "Expected ')' after enhanced for loop",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add closing parenthesis"
+            );
+            return false;
+        }
+    
+        return parseBlock();
     }
 
     /**
@@ -678,9 +1272,9 @@ public class RDP {
         if (!match(TokenType.RESERVED)) return false;
         String type = previous().getLexeme();
         return type.equals("int") || type.equals("char") || type.equals("bool") ||
-               type.equals("str") || type.equals("float") || type.equals("double") ||
-               type.equals("long") || type.equals("byte") || type.equals("Date") ||
-               type.equals("Frac") || type.equals("Complex");
+                type.equals("str") || type.equals("float") || type.equals("double") ||
+                type.equals("long") || type.equals("byte") || type.equals("Date") ||
+                type.equals("Frac") || type.equals("Complex");
     }
 
     /**
@@ -770,6 +1364,74 @@ public class RDP {
 
         return true;
     }
+
+    private boolean parseInputStatement() {
+        if (!match(TokenType.KEYWORD) || !previous().getLexeme().equals("Input")) {
+            return false;
+        }
+    
+        if (!match(TokenType.METHOD_OP) || !previous().getLexeme().equals("::")) {
+            errorHandler.reportError(
+                "Expected '::' after 'Input'",
+                peek().getLine(),
+                peek().getColumn(),
+                "Use '::' for method reference"
+            );
+            return false;
+        }
+    
+        if (!match(TokenType.KEYWORD) || !previous().getLexeme().equals("get")) {
+            errorHandler.reportError(
+                "Expected 'get' in input statement",
+                peek().getLine(),
+                peek().getColumn(),
+                "Use 'get()' for input"
+            );
+            return false;
+        }
+    
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals("(")) {
+            errorHandler.reportError(
+                "Expected '(' after 'get'",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add opening parenthesis"
+            );
+            return false;
+        }
+    
+        if (!match(TokenType.STR_LIT) && !match(TokenType.DELIM) && !previous().getLexeme().equals(")")) {
+            errorHandler.reportError(
+                "Expected prompt string or empty parentheses",
+                peek().getLine(),
+                peek().getColumn(),
+                "Provide a string or leave empty"
+            );
+            return false;
+        }
+    
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals(")")) {
+            errorHandler.reportError(
+                "Expected ')' in input statement",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add closing parenthesis"
+            );
+            return false;
+        }
+    
+        if (!match(TokenType.DELIM) || !previous().getLexeme().equals(";")) {
+            errorHandler.reportError(
+                "Missing semicolon after input statement",
+                peek().getLine(),
+                peek().getColumn(),
+                "Add semicolon to end statement"
+            );
+            return false;
+        }
+    
+        return true;
+    }    
 
     /**
      * Parses filter expressions
@@ -987,7 +1649,7 @@ public class RDP {
         if (!match(TokenType.KEYWORD) || !previous().getLexeme().equals("inline_query")) {
             return false;
         }
-
+    
         if (!match(TokenType.DELIM) || !previous().getLexeme().equals("{")) {
             errorHandler.reportError(
                 "Expected '{' after 'inline_query'",
@@ -997,7 +1659,7 @@ public class RDP {
             );
             return false;
         }
-
+    
         enterBlock();
         while (!check(TokenType.DELIM) || !peek().getLexeme().equals("}")) {
             if (!parseQueryStatement()) {
@@ -1005,12 +1667,18 @@ public class RDP {
                     "Invalid query statement",
                     peek().getLine(),
                     peek().getColumn(),
-                    "Use valid query statements (from, filter_by, select)"
+                    "Use valid query statements"
                 );
                 synchronize();
             }
+            
+            // Optional order by clause
+            parseOrderByClause();
+            
+            // Optional limit clause
+            parseLimitClause();
         }
-
+    
         if (!match(TokenType.DELIM) || !previous().getLexeme().equals("}")) {
             errorHandler.reportError(
                 "Expected '}' to close query block",
@@ -1021,7 +1689,7 @@ public class RDP {
             return false;
         }
         exitBlock();
-
+    
         return true;
     }
 
@@ -1567,8 +2235,8 @@ public class RDP {
     }
 
     /**
-     * Parses type specifiers
-     * Uses 'where type' keyword for type constraints
+     * Parses type constraints used in declarations.
+     * <Type_Constraint> ::= "where type" <Identifier> ["," <Identifier>]*
      */
     private boolean parseTypeConstraint() {
         if (!match(TokenType.KEYWORD) || !previous().getLexeme().equals("where")) {
@@ -1585,6 +2253,7 @@ public class RDP {
             return false;
         }
 
+        // Parse first type constraint
         if (!match(TokenType.IDENTIFIER)) {
             errorHandler.reportError(
                 "Expected type identifier in constraint",
@@ -1593,6 +2262,19 @@ public class RDP {
                 "Provide a valid type identifier"
             );
             return false;
+        }
+
+        // Allow multiple types in constraints
+        while (match(TokenType.DELIM) && previous().getLexeme().equals(",")) {
+            if (!match(TokenType.IDENTIFIER)) {
+                errorHandler.reportError(
+                    "Expected additional type identifier after ','",
+                    peek().getLine(),
+                    peek().getColumn(),
+                    "Provide another valid type identifier"
+                );
+                return false;
+            }
         }
 
         return true;
@@ -1604,12 +2286,15 @@ public class RDP {
      *             [<Inherit>] "{" <Class_Body> "}"
      */
     private boolean parseClass() {
-        // Parse modifiers
-        while (match(TokenType.RESERVED)) {
-            String modifier = previous().getLexeme();
-            if (!isValidClassModifier(modifier)) {
+        // Parse optional modifiers
+        while (peek().getType() == TokenType.RESERVED) {
+            String nextWord = peek().getLexeme();
+            if (nextWord.equals("class")) break;
+            
+            advance();
+            if (!isValidClassModifier(previous().getLexeme())) {
                 errorHandler.reportError(
-                    "Invalid class modifier: " + modifier,
+                    "Invalid class modifier: " + previous().getLexeme(),
                     previous().getLine(),
                     previous().getColumn(),
                     "Use valid access or non-access modifier"
@@ -1617,12 +2302,12 @@ public class RDP {
                 return false;
             }
         }
-
+    
         // Parse 'class' keyword
         if (!match(TokenType.RESERVED) || !previous().getLexeme().equals("class")) {
             return false;
         }
-
+    
         // Parse class name
         if (!match(TokenType.IDENTIFIER)) {
             errorHandler.reportError(
@@ -1633,7 +2318,7 @@ public class RDP {
             );
             return false;
         }
-
+    
         // Parse optional inheritance
         if (match(TokenType.INHERIT_OP)) {
             String inheritType = previous().getLexeme();
@@ -1643,7 +2328,7 @@ public class RDP {
                 if (!parseInterfaceInheritance()) return false;
             }
         }
-
+    
         // Parse class body
         if (!match(TokenType.DELIM) || !previous().getLexeme().equals("{")) {
             errorHandler.reportError(
@@ -1654,7 +2339,7 @@ public class RDP {
             );
             return false;
         }
-
+    
         enterBlock();
         while (!check(TokenType.DELIM) || !peek().getLexeme().equals("}")) {
             if (!parseClassMember()) {
@@ -1666,8 +2351,18 @@ public class RDP {
                 );
                 synchronize();
             }
+            
+            if (atEnd()) {
+                errorHandler.reportError(
+                    "Unterminated class body",
+                    peek().getLine(),
+                    peek().getColumn(),
+                    "Add closing brace"
+                );
+                return false;
+            }
         }
-
+    
         if (!match(TokenType.DELIM) || !previous().getLexeme().equals("}")) {
             errorHandler.reportError(
                 "Expected '}' to close class",
@@ -1678,7 +2373,7 @@ public class RDP {
             return false;
         }
         exitBlock();
-
+    
         return true;
     }
 
@@ -1687,8 +2382,8 @@ public class RDP {
      */
     private boolean isValidClassModifier(String modifier) {
         return modifier.equals("public") || modifier.equals("private") || 
-               modifier.equals("protected") || modifier.equals("abstract") ||
-               modifier.equals("final") || modifier.equals("static");
+                modifier.equals("protected") || modifier.equals("abstract") ||
+                modifier.equals("final") || modifier.equals("static");
     }
 
     /**
@@ -1756,16 +2451,21 @@ public class RDP {
      * <Class_Body> ::= <SP_Main> | <SP_Method> | <Field>
      */
     private boolean parseClassMember() {
-        // Try parsing main method first
-        if (parseMainMethod()) return true;
-
-        // Try parsing regular method
-        if (parseMethod()) return true;
-
+        // Store current position
+        int startPos = current;
+    
+        // Try simplified main first
+        if (peek().getLexeme().equals("main")) {
+            if (parseMainMethod()) return true;
+            current = startPos;
+        }
+        
         // Try parsing field
         if (parseField()) return true;
-
-        return false;
+        current = startPos;
+        
+        // Try parsing full main or regular method
+        return parseMethod();
     }
 
     /**
@@ -1787,12 +2487,12 @@ public class RDP {
                 return false;
             }
         }
-
+    
         // Parse return type
         if (!parseDataType()) {
             return false;
         }
-
+    
         // Parse method name
         if (!match(TokenType.IDENTIFIER)) {
             errorHandler.reportError(
@@ -1803,7 +2503,7 @@ public class RDP {
             );
             return false;
         }
-
+    
         // Parse parameters
         if (!match(TokenType.DELIM) || !previous().getLexeme().equals("(")) {
             errorHandler.reportError(
@@ -1814,13 +2514,13 @@ public class RDP {
             );
             return false;
         }
-
+    
         if (!check(TokenType.DELIM) || !peek().getLexeme().equals(")")) {
             if (!parseParameters()) {
                 return false;
             }
         }
-
+    
         if (!match(TokenType.DELIM) || !previous().getLexeme().equals(")")) {
             errorHandler.reportError(
                 "Expected ')' after parameters",
@@ -1830,7 +2530,20 @@ public class RDP {
             );
             return false;
         }
-
+    
+        // Parse type constraints if present
+        if (match(TokenType.KEYWORD) && previous().getLexeme().equals("where")) {
+            if (!parseTypeConstraint()) {
+                errorHandler.reportError(
+                    "Invalid type constraint",
+                    peek().getLine(),
+                    peek().getColumn(),
+                    "Provide valid type constraints"
+                );
+                return false;
+            }
+        }
+    
         // Parse method body
         return parseBlock();
     }
@@ -1870,12 +2583,13 @@ public class RDP {
         
         // Reset position for full signature check
         current = startPos;
-
+    
         // Check for full main method signature
         if (!match(TokenType.RESERVED) || !previous().getLexeme().equals("public")) {
             return false;
         }
-
+    
+        // Rest of the full signature check remains the same
         if (!match(TokenType.RESERVED) || !previous().getLexeme().equals("static")) {
             errorHandler.reportError(
                 "Main method must be static",
@@ -1885,7 +2599,7 @@ public class RDP {
             );
             return false;
         }
-
+    
         if (!match(TokenType.RESERVED) || !previous().getLexeme().equals("void")) {
             errorHandler.reportError(
                 "Main method must return void",
@@ -1895,11 +2609,11 @@ public class RDP {
             );
             return false;
         }
-
+    
         if (!match(TokenType.KEYWORD) || !previous().getLexeme().equals("main")) {
             return false;
         }
-
+    
         if (!match(TokenType.DELIM) || !previous().getLexeme().equals("(")) {
             errorHandler.reportError(
                 "Expected '(' after 'main'",
@@ -1909,7 +2623,7 @@ public class RDP {
             );
             return false;
         }
-
+    
         // Parse str[] args
         if (!match(TokenType.RESERVED) || !previous().getLexeme().equals("str")) {
             errorHandler.reportError(
@@ -1920,17 +2634,17 @@ public class RDP {
             );
             return false;
         }
-
+    
         if (!match(TokenType.DELIM) || !previous().getLexeme().equals("[")) {
             errorHandler.reportError(
                 "Expected '[' after 'str'",
                 peek().getLine(),
-                peek().getColumn(),
+                peek().getColumn(), 
                 "Add opening bracket"
             );
             return false;
         }
-
+    
         if (!match(TokenType.DELIM) || !previous().getLexeme().equals("]")) {
             errorHandler.reportError(
                 "Expected ']' after '['",
@@ -1940,7 +2654,7 @@ public class RDP {
             );
             return false;
         }
-
+    
         if (!match(TokenType.IDENTIFIER) || !previous().getLexeme().equals("args")) {
             errorHandler.reportError(
                 "Expected 'args' parameter name",
@@ -1950,7 +2664,7 @@ public class RDP {
             );
             return false;
         }
-
+    
         if (!match(TokenType.DELIM) || !previous().getLexeme().equals(")")) {
             errorHandler.reportError(
                 "Expected ')' after parameters",
@@ -1960,7 +2674,7 @@ public class RDP {
             );
             return false;
         }
-
+    
         return parseBlock();
     }
 
@@ -2001,12 +2715,15 @@ public class RDP {
      * <Field> ::= [<Access_Mod>] [<Non_Access_Mod>] <Data_Type> <Identifier> ";"
      */
     private boolean parseField() {
-        // Parse modifiers
-        while (match(TokenType.RESERVED)) {
-            String modifier = previous().getLexeme();
-            if (!isValidFieldModifier(modifier)) {
+        // Parse modifiers, but check for data type first
+        while (peek().getType() == TokenType.RESERVED) {
+            String nextWord = peek().getLexeme();
+            if (isDataType(nextWord)) break;
+            
+            advance();
+            if (!isValidFieldModifier(previous().getLexeme())) {
                 errorHandler.reportError(
-                    "Invalid field modifier: " + modifier,
+                    "Invalid field modifier: " + previous().getLexeme(),
                     previous().getLine(),
                     previous().getColumn(),
                     "Use valid access or non-access modifier"
@@ -2014,12 +2731,12 @@ public class RDP {
                 return false;
             }
         }
-
+    
         // Parse field type
         if (!parseDataType()) {
             return false;
         }
-
+    
         // Parse field name
         if (!match(TokenType.IDENTIFIER)) {
             errorHandler.reportError(
@@ -2030,7 +2747,7 @@ public class RDP {
             );
             return false;
         }
-
+    
         // Check for semicolon
         if (!match(TokenType.DELIM) || !previous().getLexeme().equals(";")) {
             errorHandler.reportError(
@@ -2041,7 +2758,7 @@ public class RDP {
             );
             return false;
         }
-
+    
         return true;
     }
 
@@ -2117,49 +2834,6 @@ public class RDP {
     }
 
     /**
-     * Looks ahead n tokens without advancing
-     */
-    private Token lookAhead(int n) {
-        if (current + n >= tokens.size()) {
-            return tokens.get(tokens.size() - 1);
-        }
-        return tokens.get(current + n);
-    }
-
-    /**
-     * Error handling utilities
-     */
-
-    /**
-     * Creates a detailed error message with context
-     */
-    private String createErrorMessage(String message, Token token) {
-        StringBuilder error = new StringBuilder();
-        error.append(String.format("Error at line %d, column %d: %s%n",
-                    token.getLine(), token.getColumn(), message));
-        error.append(String.format("Token: '%s' of type %s%n",
-                    token.getLexeme(), token.getType()));
-        return error.toString();
-    }
-
-    /**
-     * Block handling utilities
-     */
-    private void skipToEndOfBlock() {
-        int nestingLevel = 1;
-        while (!atEnd() && nestingLevel > 0) {
-            if (match(TokenType.DELIM)) {
-                if (previous().getLexeme().equals("{")) {
-                    nestingLevel++;
-                } else if (previous().getLexeme().equals("}")) {
-                    nestingLevel--;
-                }
-            }
-            if (nestingLevel > 0) advance();
-        }
-    }
-
-    /**
      * Synchronization point handling
      */
     private boolean isStatementStart() {
@@ -2195,20 +2869,16 @@ public class RDP {
         return false;
     }
 
-    /**
-     * Recovery utilities
-     */
-    private void recoverFromError(String context) {
-        errorHandler.reportError(
-            "Attempting to recover from error in " + context,
-            peek().getLine(),
-            peek().getColumn(),
-            "Check syntax near this point"
-        );
-        
-        // Skip tokens until we find a synchronization point
-        while (!atEnd() && !isStatementStart() && !isDeclarationStart()) {
-            advance();
-        }
+    private boolean isValidDateOp(String op) {
+        return op.equals("before") || op.equals("after") ||
+                op.equals("year") || op.equals("month") ||
+                op.equals("day") || op.equals("today");
+    }
+
+    private boolean isDataType(String word) {
+        return word.equals("int") || word.equals("char") || word.equals("bool") ||
+                word.equals("str") || word.equals("float") || word.equals("double") ||
+                word.equals("long") || word.equals("byte") || word.equals("Date") ||
+                word.equals("Frac") || word.equals("Complex");
     }
 }

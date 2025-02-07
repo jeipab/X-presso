@@ -1,1 +1,7 @@
-a = (b > c) ? a+b : a-c;
+public class Test {
+    private int a;
+
+    main(args){
+
+    }
+}
