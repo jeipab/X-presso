@@ -210,13 +210,20 @@ public class Lexer {
         int startColumn = reader.getColumn();
     
         if (currentChar == '[') {
-            // Start parsing a potential date or fraction literal
-            StringBuilder literal = new StringBuilder();
-            literal.append(currentChar);
-            handleDateOrFraction(literal);
+            if (reader.peek() == ']') {
+                // If immediately closed, treat as array type delimiters
+                tokens.add(new Token(TokenType.DELIM, "[", line, startColumn));
+                reader.readNext(); // Consume the closing bracket
+                tokens.add(new Token(TokenType.DELIM, "]", reader.getLine(), reader.getColumn()));
+            } else {
+                // Otherwise, parse as a potential date or fraction literal
+                StringBuilder literal = new StringBuilder();
+                literal.append(currentChar);
+                handleDateOrFraction(literal);
+            }
         } else if (currentChar == ']') {
             errorHandler.reportError(
-                ErrorType.MISMATCHED_DELIMITERS,
+                ErrorHandler.ErrorType.MISMATCHED_DELIMITERS,
                 "Unexpected closing bracket ']'",
                 line, startColumn
             );
@@ -225,11 +232,11 @@ public class Lexer {
             tokens.add(new Token(TokenType.DELIM, String.valueOf(currentChar), line, startColumn));
         } else {
             errorHandler.reportError(
-                ErrorType.INVALID_DELIMITER,
+                ErrorHandler.ErrorType.INVALID_DELIMITER,
                 "Invalid delimiter: " + currentChar,
                 line, startColumn
             );
-        }
+        }        
     }    
 
     /**
