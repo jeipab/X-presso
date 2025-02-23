@@ -1,18 +1,20 @@
 package util;
 
+import lexer.Token;
 import java.util.ArrayList;
 import java.util.List;
 
-import lexer.Token;
-import parser.RDP;
-
+/**
+ * Manages syntax errors encountered during parsing.
+ * Stores errors, provides reporting functionality, and assists in error recovery.
+ */
 public class SyntaxErrorHandler {
-    private final List<SyntaxError> errors;
+    private final List<SyntaxError> errors; // Stores all syntax errors
+    private static final int MAX_ERRORS = 10;
 
-    public SyntaxErrorHandler(RDP rdp) {
-        this.errors = new ArrayList<>();
-    }
-
+    /**
+     * Represents a syntax error with message, location, and suggestion.
+     */
     public static class SyntaxError {
         private final String message;
         private final int line;
@@ -28,17 +30,81 @@ public class SyntaxErrorHandler {
 
         @Override
         public String toString() {
-            return String.format("Error at line %d, column %d: %s\nSuggestion: %s",
+            return String.format("Syntax Error at line %d, column %d: %s\nSuggestion: %s",
                     line, column, message, suggestion);
         }
     }
 
-    // Report an error
+    public SyntaxErrorHandler() {
+        this.errors = new ArrayList<>();
+    }
+
+    /**
+     * Reports a syntax error and stores it.
+     *
+     * @param message     Description of the error.
+     * @param line        Line number where the error occurred.
+     * @param column      Column number where the error occurred.
+     * @param suggestion  Suggested fix for the error.
+     */
     public void reportError(String message, int line, int column, String suggestion) {
+        if (errors.size() >= MAX_ERRORS) {
+            System.err.println("Maximum error limit reached. Further errors will be ignored.");
+            return; // Prevent excessive memory usage
+        }
         errors.add(new SyntaxError(message, line, column, suggestion));
     }
 
-    // Print all errors
+    /**
+     * Handles unexpected token errors.
+     *
+     * @param foundToken The unexpected token encountered.
+     * @param expected   Description of the expected token or structure.
+     */
+    public void handleUnexpectedToken(Token foundToken, String expected) {
+        reportError(
+            "Unexpected token: '" + foundToken.getLexeme() + "'",
+            foundToken.getLine(),
+            foundToken.getColumn(),
+            "Expected " + expected
+        );
+    }
+
+    /**
+     * Handles missing token errors.
+     *
+     * @param expected  Description of the missing token.
+     * @param line      Line number where the issue occurred.
+     * @param column    Column number where the issue occurred.
+     */
+    public void handleMissingToken(String expected, int line, int column) {
+        reportError(
+            "Missing expected token: " + expected,
+            line,
+            column,
+            "Ensure the correct token appears here."
+        );
+    }
+
+    /**
+     * Handles unclosed structures like missing brackets, parentheses, etc.
+     *
+     * @param structure Description of the unclosed structure.
+     * @param line      Line number where the issue occurred.
+     * @param column    Column number where the issue occurred.
+     */
+    public void handleUnclosedStructure(String structure, int line, int column) {
+        reportError(
+            "Unclosed " + structure,
+            line,
+            column,
+            "Ensure you have a matching closing " + structure
+        );
+    }
+
+    /**
+     * Prints all recorded syntax errors.
+     */
     public void printErrors() {
         if (errors.isEmpty()) {
             System.out.println("No syntax errors found.");
@@ -50,13 +116,26 @@ public class SyntaxErrorHandler {
         }
     }
 
-    // Check if errors exist
+    /**
+     * Returns whether any syntax errors have been recorded.
+     *
+     * @return True if errors exist, otherwise false.
+     */
     public boolean hasErrors() {
         return !errors.isEmpty();
     }
 
-    public void handleUnexpectedToken(Token peek, Object object, int line, int column) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'handleUnexpectedToken'");
+    /**
+     * Returns the list of all recorded syntax errors.
+     */
+    public List<SyntaxError> getErrors() {
+        return new ArrayList<>(errors);
+    }
+
+    /**
+     * Clears all recorded syntax errors.
+     */
+    public void clearErrors() {
+        errors.clear();
     }
 }

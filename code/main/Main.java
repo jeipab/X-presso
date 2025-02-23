@@ -73,7 +73,7 @@ public class Main {
      * @throws IOException If an error occurs while reading the source file.
      */
     private void run(String[] args) throws IOException {
-        System.out.println("Welcome to X-presso Lexer!");
+        System.out.println("Welcome to X-presso!");
         
         if (args.length < 1) {
             handleInteractiveMode();
@@ -228,15 +228,15 @@ public class Main {
             // 3. Filter whitespace tokens before parsing
             List<Token> filteredTokens = filterWhitespaceTokens(tokens);
 
-            // 4. Pass filtered tokens to the parser
+            // 4. Output tokens after parsing
+            outputTokens(tokens);
+
+            // 5. Print token summary
+            printTokenSummary(tokens);
+
+            // 6. Pass filtered tokens to the parser
             RDP parser = new RDP(filteredTokens);
             parser.parse();  // Perform syntax analysis
-
-            // 5. Output tokens after parsing
-            outputTokens(filteredTokens);
-
-            // 6. Print token summary
-            printTokenSummary(filteredTokens);
         } catch (Exception e) {
             throw new IOException("Error processing file: " + e.getMessage(), e);
         }
@@ -630,7 +630,7 @@ public class Main {
     private List<Token> filterWhitespaceTokens(List<Token> tokens) {
         return tokens.stream()
             .filter(token -> token.getType() != TokenType.WHITESPACE && 
-                            token.getType() != TokenType.COMMENT) // Also filter comments if desired
+                            token.getType() != TokenType.COMMENT) // Also filter comments
             .collect(Collectors.toList());
     }
 }
