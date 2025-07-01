@@ -20,6 +20,7 @@ public class RDP {
         NON_ACCESS_MODIFIER,
         CLASS_KEYWORD,
         CLASS_NAME,
+        INHERITANCE,
         OPEN_BRACE,
         CLASS_BODY,
         CLOSE_BRACE,
@@ -128,20 +129,142 @@ public class RDP {
                     break;
 
                 case CLASS_NAME:
-                    if (currentToken.getType() == TokenType.DELIM && currentToken.getLexeme().equals("{")) {
-                        advance();
-                        currentState = State.OPEN_BRACE;
+                    if (currentToken.getType() == TokenType.IDENTIFIER) {
+                        advance(); // Consume the class name
+                        Token nextToken = peek();
+                        if (isClassInheritance(nextToken) || isInterfaceInheritance(nextToken)) {
+                            currentState = State.INHERITANCE;
+                        } else if (isOpenBrace(nextToken)) {
+                            advance(); // Consume the opening brace
+                            currentState = State.OPEN_BRACE;
+                        } else {
+                            errorHandler.reportError(
+                                "Expected opening brace '{' or inheritance operator ':>>' or ':>'",
+                                nextToken.getLine(),
+                                nextToken.getColumn(),
+                                "Add '{' to start class body or specify inheritance using ':>' or ':>>'"
+                            );
+                            hasError = true;
+                            advance();
+                        }
                     } else {
                         errorHandler.reportError(
-                            "Expected opening brace '{'",
+                            "Expected class name",
                             currentToken.getLine(),
                             currentToken.getColumn(),
-                            "Add '{' to start class body"
+                            "Add a valid identifier for the class name"
                         );
                         hasError = true;
                         advance();
                     }
                     break;
+                
+                case INHERITANCE:
+                    boolean foundClassInheritance = false;
+                    boolean foundInterfaceInheritance = false;
+                
+                    while (!atEnd()) {
+                        currentToken = peek();
+                
+                        // Handle class inheritance (:>)
+                        if (isClassInheritance(currentToken)) {
+                            if (foundClassInheritance) {
+                                errorHandler.reportError(
+                                    "Multiple class inheritance is not allowed",
+                                    currentToken.getLine(),
+                                    currentToken.getColumn(),
+                                    "A class can extend only one parent class."
+                                );
+                
+                                // Force recovery by skipping until we reach ':>>' or '{'
+                                while (!atEnd() && !isInterfaceInheritance(peek()) && !isOpenBrace(peek())) {
+                                    advance();
+                                }
+                                continue; // Stop processing further class inheritance
+                            }
+                            foundClassInheritance = true;
+                            advance(); // Consume ':>'
+                
+                            // Ensure there's a valid class name after ':>'
+                            if (!match(TokenType.IDENTIFIER)) {
+                                errorHandler.reportError(
+                                    "Expected class name after ':>'",
+                                    peek().getLine(),
+                                    peek().getColumn(),
+                                    "Provide a valid class name after ':>'"
+                                );
+                
+                                // Skip invalid tokens until reaching ':>>' or '{'
+                                while (!atEnd() && !isInterfaceInheritance(peek()) && !isOpenBrace(peek())) {
+                                    advance();
+                                }
+                                continue;
+                            }
+                        }
+                        // Handle interface inheritance (:>>)
+                        else if (isInterfaceInheritance(currentToken)) {
+                            foundInterfaceInheritance = true;
+                            advance(); // Consume ':>>'
+                
+                            // Ensure at least one interface name follows ':>>'
+                            if (!match(TokenType.IDENTIFIER)) {
+                                errorHandler.reportError(
+                                    "Expected interface name after ':>>'",
+                                    peek().getLine(),
+                                    peek().getColumn(),
+                                    "Provide a valid interface name after ':>>'"
+                                );
+                
+                                // Force recovery: Skip invalid tokens
+                                while (!atEnd() && !isOpenBrace(peek())) {
+                                    advance();
+                                }
+                                continue;
+                            }
+                
+                            // Allow multiple interfaces but enforce proper commas
+                            while (!atEnd() && isComma(peek())) {
+                                advance(); // Consume comma
+                                if (!match(TokenType.IDENTIFIER)) {
+                                    errorHandler.reportError(
+                                        "Expected interface name after comma",
+                                        peek().getLine(),
+                                        peek().getColumn(),
+                                        "Ensure proper syntax: Interface1, Interface2"
+                                    );
+                                    
+                                    // Skip invalid tokens until reaching '{'
+                                    while (!atEnd() && !isOpenBrace(peek())) {
+                                        advance();
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        else {
+                            // Not a valid inheritance operator
+                            break;
+                        }
+                    }
+                
+                    // Ensure an opening brace '{' follows
+                    if (!isOpenBrace(peek())) {
+                        errorHandler.reportError(
+                            "Expected opening brace '{'",
+                            peek().getLine(),
+                            peek().getColumn(),
+                            "Add '{' after class declaration"
+                        );
+                
+                        // Skip to the next relevant token
+                        while (!atEnd() && !isOpenBrace(peek())) {
+                            advance();
+                        }
+                    } else {
+                        advance(); // Consume '{'
+                        currentState = State.OPEN_BRACE;
+                    }
+                    break;                                                                                                                                                                    
 
                 case OPEN_BRACE:
                     if (currentToken.getType() == TokenType.DELIM && currentToken.getLexeme().equals("}")) {
@@ -176,6 +299,22 @@ public class RDP {
                 token.getLexeme().equals("class");
     }
 
+    private boolean isClassInheritance(Token token) {
+        return token.getType() == TokenType.INHERIT_OP && token.getLexeme().equals(":>");
+    }
+
+    private boolean isInterfaceInheritance(Token token) {
+        return token.getType() == TokenType.INHERIT_OP && token.getLexeme().equals(":>>");
+    }
+
+    private boolean isOpenBrace(Token token) {
+        return token.getType() == TokenType.DELIM && token.getLexeme().equals("{");
+    }
+
+    private boolean isComma(Token token) {
+        return token.getType() == TokenType.PUNC_DELIM && token.getLexeme().equals(",");
+    }
+
     // Helper methods
     private Token advance() {
         if (!atEnd()) current++;
@@ -192,5 +331,14 @@ public class RDP {
 
     private Token previous() {
         return tokens.get(current - 1);
+    }
+
+    private boolean match(TokenType expected) {
+        if (atEnd()) return false;
+        if (peek().getType() == expected) {
+            advance();
+            return true;
+        }
+        return false;
     }
 }
